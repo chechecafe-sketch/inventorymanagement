@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { STORES, ADMINS, CATEGORIES, CRITICAL_ITEMS } from './constants'
-import { haversineKm, fmtAge, fmtTime, getAgeColor, avgResupplyHours } from './utils'
+import { haversineKm, fmtAge, fmtTime, getAgeColor, avgResupplyHours, priorityScore } from './utils'
+
+// Total de ítems que se trackean por tienda (mismo catálogo base para las 5) —
+// se usa para que la barra de salud sea proporcional de verdad, en vez de
+// saturarse con tiendas que acumulan muchas alertas.
+const TOTAL_TRACKED_ITEMS = Object.values(CATEGORIES).reduce((s, c) => s + c.items.length, 0)
 
 export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats }) {
-  const [aiText, setAiText] = useState('')
-  const [aiLoad, setAiLoad] = useState(false)
   const [tick, setTick] = useState(0)
   const [expandedStore, setExpandedStore] = useState(null)
 
@@ -17,63 +20,16 @@ export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats })
   const critical = alerts.filter(a => a.isCritical)
   const storesWithIssues = new Set(urgent.map(a => a.store_id)).size
 
-  const getAI = async () => {
-    setAiLoad(true)
-    setAiText('')
-
-    const snap = STORES.map(store => {
-      const sa = alerts.filter(a => a.store_id === store.id)
-      return {
-        tienda: store.fullName,
-        prioridad: store.priority,
-        agotados: sa.filter(a=>a.status==='out').map(a=>a.item),
-        urgentes: sa.filter(a=>a.status==='urgent').map(a=>a.item),
-        pocos:    sa.filter(a=>a.status==='low').map(a=>a.item),
-        alertaVieja_hrs: sa.length ? Math.max(...sa.map(a=>(Date.now()-new Date(a.reported_at).getTime())/3600000)).toFixed(1) : 0,
-      }
-    })
-
-    const rutas = [
-      `SMR↔Taba: ${haversineKm(19.4481714,-99.1542853,19.4389001,-99.1558311).toFixed(1)}km`,
-      `SMR↔Jardín: ${haversineKm(19.4481714,-99.1542853,19.4501148,-99.1610219).toFixed(1)}km`,
-      `Taba↔Centro: ${haversineKm(19.4389001,-99.1558311,19.4351227,-99.1327956).toFixed(1)}km`,
-      `Centro↔Studio: ${haversineKm(19.4351227,-99.1327956,19.3734283,-99.1607971).toFixed(1)}km`,
-      `Jardín↔Taba: ${haversineKm(19.4501148,-99.1610219,19.4389001,-99.1558311).toFixed(1)}km`,
-    ]
-
-    const prompt = `Eres asistente de operaciones de Che Che Café CDMX. Responde SOLO en este formato exacto, sin texto adicional:
-
-🔴 CRÍTICO AHORA
-[máx 3 items: "Tienda — Ítem (tiempo)"]
-
-🏍️ RUTA MOTO
-[1-2 líneas: qué tiendas juntar y por qué]
-
-⬆️ SURTIR PRIMERO
-[lista de 3-4 ítems en orden, con tienda]
-
-⬇️ PUEDE ESPERAR
-[lista de 2-3 ítems]
-
----
-DATOS:
-${JSON.stringify(snap)}
-Distancias (x1.4 tráfico): ${rutas.join(' | ')}
-`
-
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:400, messages:[{role:'user',content:prompt}] })
-      })
-      const data = await res.json()
-      setAiText(data.content?.map(b=>b.text||'').join('') || 'Sin datos.')
-    } catch(e) {
-      setAiText('Error de conexión.')
-    }
-    setAiLoad(false)
-  }
+  // "Surtir primero" — ranking determinístico, sin IA ni llaves expuestas:
+  // combina severidad, antigüedad del reporte y qué tan rápido se agota ese
+  // ítem históricamente en esa tienda (consumo_historico ya trackea esto).
+  const surtirPrimero = useMemo(() => {
+    return alerts
+      .filter(a => a.status !== 'ok')
+      .map(a => ({ ...a, score: priorityScore(a, consumoStats[a.store_id]) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8)
+  }, [alerts, consumoStats])
 
   return (
     <div style={{ minHeight:'100vh', background:'#f7f5f0', paddingBottom:40 }}>
@@ -112,7 +68,9 @@ Distancias (x1.4 tráfico): ${rutas.join(' | ')}
         {STORES.map(store => {
           const sa = urgent.filter(a => a.store_id === store.id)
           const cr = sa.filter(a => a.isCritical).length
-          const pct = Math.max(5, 100 - Math.round((sa.length / 12) * 100))
+          // % de ítems trackeados que SÍ están bien (proporcional al catálogo real,
+          // ya no se satura en 5% cuando una tienda acumula muchas alertas)
+          const pct = Math.max(0, Math.round(100 - (sa.length / TOTAL_TRACKED_ITEMS) * 100))
           const barCol = pct < 55 ? '#c1121f' : pct < 80 ? '#e9c46a' : '#4a7c59'
           const oldest = sa.length ? Math.min(...sa.map(a=>new Date(a.reported_at).getTime())) : null
           const isExpanded = expandedStore === store.id
@@ -178,40 +136,40 @@ Distancias (x1.4 tráfico): ${rutas.join(' | ')}
           )
         })}
 
-        {/* AI block */}
+        {/* Surtir primero — ranking determinístico (severidad + antigüedad + qué tan rápido
+            se agota históricamente), reemplaza el bloque de IA que llamaba a Anthropic sin
+            llave desde el navegador y nunca funcionó. */}
         <div style={{ background:'#fff', borderRadius:12, padding:'14px', border:'1.5px solid #ddd', marginTop:14 }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-            <div>
-              <div style={{ fontWeight:600, fontSize:14 }}>✨ Análisis IA</div>
-              <div style={{ fontSize:11, color:'#888' }}>Rutas · Prioridades · Acciones</div>
-            </div>
-            <button onClick={getAI} disabled={aiLoad}
-              style={{ background:'#2d2d2a', color:'#fff', border:'none', borderRadius:8, padding:'7px 13px',
-                fontSize:12, fontWeight:600, cursor:aiLoad?'wait':'pointer', opacity:aiLoad?0.6:1 }}>
-              {aiLoad ? '⏳ ...' : 'Analizar'}
-            </button>
+          <div style={{ marginBottom:10 }}>
+            <div style={{ fontWeight:600, fontSize:14 }}>⬆️ Surtir primero</div>
+            <div style={{ fontSize:11, color:'#888' }}>Orden automático por urgencia, antigüedad y qué tan rápido se acaba</div>
           </div>
 
-          {aiText ? (
-            <div style={{ fontSize:13, lineHeight:1.7, borderTop:'1px solid #f0ede8', paddingTop:10 }}>
-              {aiText.split('\n').map((line, i) => {
-                const isHeader = line.startsWith('🔴')||line.startsWith('🏍')||line.startsWith('⬆')||line.startsWith('⬇')||line.startsWith('---')
-                return (
-                  <div key={i} style={{
-                    fontWeight: isHeader ? 700 : 400,
-                    fontSize: isHeader ? 13 : 12,
-                    color: line.startsWith('🔴') ? '#c1121f' : line.startsWith('🏍') ? '#4a5f7c' : line.startsWith('⬆') ? '#4a7c59' : '#333',
-                    marginTop: isHeader ? 10 : 2,
-                    marginBottom: isHeader ? 2 : 0,
-                  }}>
-                    {line || '\u00A0'}
-                  </div>
-                )
-              })}
+          {surtirPrimero.length === 0 ? (
+            <div style={{ color:'#bbb', fontSize:12, fontStyle:'italic', borderTop:'1px solid #f0ede8', paddingTop:10 }}>
+              Nada pendiente por ahora — todo en verde.
             </div>
-          ) : !aiLoad && (
-            <div style={{ color:'#bbb', fontSize:12, fontStyle:'italic' }}>
-              Presiona "Analizar" para ver rutas de moto y prioridades.
+          ) : (
+            <div style={{ borderTop:'1px solid #f0ede8', paddingTop:6 }}>
+              {surtirPrimero.map((a, i) => (
+                <div key={`${a.store_id}-${a.item}`} style={{
+                  display:'flex', alignItems:'center', justifyContent:'space-between', gap:8,
+                  padding:'7px 0', borderBottom: i < surtirPrimero.length-1 ? '0.5px solid #f5f3ef' : 'none' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
+                    <span style={{ fontSize:11, color:'#bbb', fontWeight:700, width:14 }}>{i+1}</span>
+                    <span style={{ fontSize:12 }}>{a.status==='out'?'🔴':a.status==='urgent'?'🟠':'🟡'}</span>
+                    <div style={{ minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:'#1a1a1a', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{a.item}</div>
+                      <div style={{ fontSize:10, color:'#888' }}>{a.storeName} · ⏱ {fmtAge(a.reported_at)}</div>
+                    </div>
+                  </div>
+                  <button onClick={() => onMarkOk(a.store_id, a.item)}
+                    style={{ background:'#e8f5e9', color:'#2d6a4f', border:'1px solid #b7dfc5',
+                      borderRadius:5, padding:'3px 9px', fontSize:11, fontWeight:600, cursor:'pointer', flexShrink:0 }}>
+                    ✓ Surtido
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { STORES, CATEGORIES, CRITICAL_ITEMS, STATUS_ORDER } from './constants'
+import { STORES, CATEGORIES, CRITICAL_ITEMS } from './constants'
 import { loadAllAlerts, upsertFaltante, loadConsumoStats, loadCustomItems, addCustomItem as dbAddCustomItem, subscribeAlerts } from './db'
 import HomeScreen   from './HomeScreen'
 import LoginScreen  from './LoginScreen'
@@ -14,9 +14,25 @@ function enrichAlerts(raw) {
   }))
 }
 
+// ── Ruteo simple por URL (para QR directo por tienda: /t/<storeId>) ─────────
+// No usamos una librería de routing — la app es chica y solo necesitamos
+// resolver la ruta inicial (y reflejarla al navegar) para que un QR pegado
+// en la tienda abra directo la pantalla de login de esa sucursal.
+function parseRoute() {
+  const path = window.location.pathname
+  const storeMatch = path.match(/^\/t\/([a-z]+)\/?$/)
+  if (storeMatch) {
+    const store = STORES.find(s => s.id === storeMatch[1])
+    if (store) return { view: 'login', store }
+  }
+  if (/^\/admin\/?$/.test(path)) return { view: 'login-master', store: null }
+  return { view: 'home', store: null }
+}
+
 export default function App() {
-  const [view,        setView]        = useState('home')  // home | login | store | master
-  const [activeStore, setActiveStore] = useState(null)
+  const initialRoute = (() => parseRoute())()
+  const [view,        setView]        = useState(initialRoute.view)  // home | login | login-master | store | master
+  const [activeStore, setActiveStore] = useState(initialRoute.store)
   const [userName,    setUserName]    = useState('')
   const [isAdmin,     setIsAdmin]     = useState(false)
   const [alerts,      setAlerts]      = useState([])
@@ -47,6 +63,24 @@ export default function App() {
     setCustomItems(prev => ({ ...prev, [storeId]: grouped }))
   }, [])
 
+  // Si entramos por un deep link (/t/smr), precargamos los ítems custom de esa tienda
+  useEffect(() => {
+    if (initialRoute.store) loadStoreCustomItems(initialRoute.store.id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Soporte básico de back/forward del navegador
+  useEffect(() => {
+    const onPopState = () => {
+      const r = parseRoute()
+      setView(r.view)
+      setActiveStore(r.store)
+      if (r.store) loadStoreCustomItems(r.store.id)
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [loadStoreCustomItems])
+
   // ── Load consumption stats for master ─────────────────────────────────────
   const loadAllConsumo = useCallback(async () => {
     const results = {}
@@ -56,10 +90,8 @@ export default function App() {
     setConsumoStats(results)
   }, [])
 
-  // ── Cycle item status ─────────────────────────────────────────────────────
-  const handleCycle = useCallback(async (storeId, item, category) => {
-    const current = alerts.find(a => a.store_id === storeId && a.item === item)?.status || 'ok'
-    const next = STATUS_ORDER[(STATUS_ORDER.indexOf(current)+1) % STATUS_ORDER.length]
+  // ── Set item status directly (un toque = estado exacto, ya no cíclico) ────
+  const handleSetStatus = useCallback(async (storeId, item, category, next) => {
     // Optimistic update
     setAlerts(prev => {
       const exists = prev.find(a => a.store_id===storeId && a.item===item)
@@ -70,7 +102,7 @@ export default function App() {
         storeName: STORES.find(s=>s.id===storeId)?.name||storeId }]
     })
     await upsertFaltante({ storeId, category, item, status:next, reportedBy:userName })
-  }, [alerts, userName])
+  }, [userName])
 
   // ── Mark as restocked ─────────────────────────────────────────────────────
   const handleMarkOk = useCallback(async (storeId, item) => {
@@ -89,9 +121,13 @@ export default function App() {
   }, [userName])
 
   // ── Navigation ────────────────────────────────────────────────────────────
-  const goHome = () => { setView('home'); setUserName(''); setIsAdmin(false); setActiveStore(null) }
+  const goHome = () => {
+    window.history.pushState({}, '', '/')
+    setView('home'); setUserName(''); setIsAdmin(false); setActiveStore(null)
+  }
 
   const selectStore = (store) => {
+    window.history.pushState({}, '', `/t/${store.id}`)
     setActiveStore(store)
     setView('login')
     loadStoreCustomItems(store.id)
@@ -104,6 +140,7 @@ export default function App() {
   }
 
   const goMaster = () => {
+    window.history.pushState({}, '', '/admin')
     setActiveStore(null)
     setView('login-master')
   }
@@ -143,7 +180,7 @@ export default function App() {
       isAdmin={isAdmin}
       alerts={alerts}
       onBack={goHome}
-      onCycle={(storeId, item, cat) => handleCycle(storeId, item, cat)}
+      onSetStatus={(storeId, item, cat, status) => handleSetStatus(storeId, item, cat, status)}
       onMarkOk={handleMarkOk}
       onAddItem={(cat, name) => handleAddItem(activeStore.id, cat, name)}
       customItems={customItems[activeStore.id] || {}}

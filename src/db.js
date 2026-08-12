@@ -23,54 +23,42 @@ export async function loadAllAlerts() {
 }
 
 // ── UPSERT a faltante (insert or update by store+item) ──────────────────────
+// Nota: `faltantes` tiene un constraint único (store_id, item) — un solo
+// registro "estado actual" por ítem. Usamos upsert real con onConflict en
+// vez de select-then-insert-or-update: eso fue lo que antes generaba filas
+// duplicadas sin fin cuando ya existía más de un registro para el mismo ítem.
 export async function upsertFaltante({ storeId, category, item, status, reportedBy, adminName }) {
-  // Check if exists
+  const now = new Date().toISOString()
+
+  // maybeSingle: no truena si no hay fila (ítem nunca reportado antes)
   const { data: existing } = await supabase
     .from('faltantes')
     .select('id, status')
     .eq('store_id', storeId)
     .eq('item', item)
-    .single()
+    .maybeSingle()
 
-  const now = new Date().toISOString()
   const prevStatus = existing?.status || 'ok'
 
-  let faltanteId
-  if (status === 'ok') {
-    // Resolving — update record
-    if (existing) {
-      await supabase.from('faltantes').update({
-        status: 'ok',
-        resolved_by: adminName || reportedBy,
-        resolved_at: now,
-        updated_at: now,
-      }).eq('id', existing.id)
-      faltanteId = existing.id
-    }
-  } else {
-    if (existing) {
-      await supabase.from('faltantes').update({
-        status,
-        reported_by: reportedBy,
-        reported_at: now,
-        resolved_by: null,
-        resolved_at: null,
-        updated_at: now,
-      }).eq('id', existing.id)
-      faltanteId = existing.id
-    } else {
-      const { data: inserted } = await supabase.from('faltantes').insert({
-        store_id: storeId,
-        category,
-        item,
-        status,
-        reported_by: reportedBy,
-        reported_at: now,
-        updated_at: now,
-      }).select('id').single()
-      faltanteId = inserted?.id
-    }
-  }
+  const payload = status === 'ok'
+    ? {
+        store_id: storeId, category, item, status: 'ok',
+        resolved_by: adminName || reportedBy, resolved_at: now, updated_at: now,
+      }
+    : {
+        store_id: storeId, category, item, status,
+        reported_by: reportedBy, reported_at: now,
+        resolved_by: null, resolved_at: null, updated_at: now,
+      }
+
+  const { data: upserted, error } = await supabase
+    .from('faltantes')
+    .upsert(payload, { onConflict: 'store_id,item' })
+    .select('id')
+    .single()
+
+  if (error) { console.error(error); return }
+  const faltanteId = upserted?.id
 
   // Log the change
   if (faltanteId && prevStatus !== status) {

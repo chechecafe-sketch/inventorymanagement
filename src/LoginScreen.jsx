@@ -76,8 +76,6 @@ export default function LoginScreen({ store, onLogin, onAdmin }) {
             borderRadius:10, padding:'14px', fontSize:15, fontWeight:600, cursor:'pointer' }}>
           Entrar →
         </button>
-
-        {tab === 'admin' && <div style={{ marginTop:14, textAlign:'center', color:'#bbb', fontSize:11 }}>PIN demo: 1234</div>}
       </div>
     </div>
   )

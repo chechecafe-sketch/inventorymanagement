@@ -42,3 +42,16 @@ export function avgResupplyHours(statsArr, item) {
   if (!rows.length) return null
   return rows.reduce((s, r) => s + r.hours_to_resolve, 0) / rows.length
 }
+
+// Score an alert for "Surtir primero" ranking — determinístico, sin IA:
+// severidad del estado + antigüedad del reporte + qué tan rápido se agota
+// históricamente ese ítem en esa tienda (entre más rápido, más urgente subirlo).
+export function priorityScore(alert, statsForStore) {
+  const severityWeight = { low: 1, urgent: 2, out: 3 }[alert.status] || 0
+  const ageHours = (Date.now() - new Date(alert.reported_at).getTime()) / 3600000
+  const ageScore = Math.min(ageHours / 4, 6) // se satura a las ~24h para no dejar que un solo viejo domine todo
+  const avgHours = avgResupplyHours(statsForStore || [], alert.item)
+  const speedScore = avgHours ? Math.max(0, 4 - avgHours / 12) : 0 // se acaba rápido históricamente → suma
+  const criticalBonus = alert.isCritical ? 2 : 0
+  return severityWeight * 3 + ageScore + speedScore + criticalBonus
+}
