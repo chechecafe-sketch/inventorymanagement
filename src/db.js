@@ -146,6 +146,29 @@ export async function addCustomItem({ storeId, category, itemName, addedBy }) {
   return !error
 }
 
+// ── STOCK COUNTS — leche/café/pan capturados 3x al día (apertura/medio/cierre) ─
+export async function loadStockCounts(storeId, countDate) {
+  const { data, error } = await supabase
+    .from('stock_counts')
+    .select('*')
+    .eq('store_id', storeId)
+    .eq('count_date', countDate)
+  if (error) console.error(error)
+  return data || []
+}
+
+export async function upsertStockCount({ storeId, item, unit, shift, quantity, reportedBy, countDate }) {
+  const { error } = await supabase
+    .from('stock_counts')
+    .upsert({
+      store_id: storeId, item, unit, shift, quantity,
+      reported_by: reportedBy, reported_at: new Date().toISOString(),
+      count_date: countDate,
+    }, { onConflict: 'store_id,item,count_date,shift' })
+  if (error) console.error(error)
+  return !error
+}
+
 // ── SUBSCRIBE to real-time alerts ────────────────────────────────────────────
 export function subscribeAlerts(callback) {
   return supabase

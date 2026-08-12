@@ -2,8 +2,10 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { CATEGORIES, STATUS_CFG, CRITICAL_ITEMS } from './constants'
 import { fmtTime, fmtAge, getAgeColor } from './utils'
 import { C, FONT_DISPLAY, FONT_BODY } from './theme'
+import StockTab from './StockTab'
 
 const PENDIENTES = 'pendientes'
+const STOCK = 'stock'
 const STATUS_KEYS = ['ok', 'low', 'urgent', 'out']
 
 export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, onSetStatus, onMarkOk, onAddItem, customItems }) {
@@ -39,6 +41,7 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
   // solo la posición no se mueve. Para refrescar el orden, vuelve a tocar la
   // misma pestaña.
   const buildOrder = useCallback((cat) => {
+    if (cat === STOCK) return [] // el tab de Stock tiene su propia UI, no usa esta lista
     if (cat === PENDIENTES) {
       return storeAlerts
         .slice()
@@ -109,6 +112,13 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
               </span>
             )}
           </button>
+          <button onClick={() => selectCat(STOCK)}
+            style={{ background: activeCat === STOCK ? C.text : C.chipBg,
+              color: activeCat === STOCK ? '#000' : C.textDim,
+              border: 'none', borderRadius: 20, padding: '7px 13px', fontSize: 12, fontWeight: 800,
+              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontFamily:FONT_BODY }}>
+            📦 Stock
+          </button>
           {Object.entries(CATEGORIES).map(([key, cat]) => {
             const catAlerts = storeAlerts.filter(a => a.category === key)
             return (
@@ -131,6 +141,10 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
       </div>
 
       <div style={{ padding: '14px 14px' }}>
+        {activeCat === STOCK ? (
+          <StockTab store={store} userName={userName} />
+        ) : (
+        <>
         {/* Buscador */}
         <input value={query} onChange={e => setQuery(e.target.value)}
           placeholder="🔍 Buscar ítem..."
@@ -229,18 +243,22 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
               style={{ background: C.text, color: '#000', border: 'none', borderRadius: 10, padding: '11px 16px', fontSize: 18, fontWeight:800, cursor: 'pointer' }}>+</button>
           </div>
         )}
+        </>
+        )}
       </div>
 
-      {/* Status legend */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: C.bgHeader,
-        borderTop: `1px solid ${C.divider}`, padding: '11px 16px', display: 'flex', gap: 16, justifyContent: 'center' }}>
-        {Object.entries(STATUS_CFG).map(([k, v]) => (
-          <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <div style={{ width: 22, height: 22, borderRadius: 6, background: v.bg, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{v.short}</div>
-            <span style={{ fontSize: 12, color: C.textDim, fontWeight:500 }}>{v.label}</span>
-          </div>
-        ))}
-      </div>
+      {/* Status legend — no aplica en el tab de Stock (usa números, no estados) */}
+      {activeCat !== STOCK && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: C.bgHeader,
+          borderTop: `1px solid ${C.divider}`, padding: '11px 16px', display: 'flex', gap: 16, justifyContent: 'center' }}>
+          {Object.entries(STATUS_CFG).map(([k, v]) => (
+            <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ width: 22, height: 22, borderRadius: 6, background: v.bg, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{v.short}</div>
+              <span style={{ fontSize: 12, color: C.textDim, fontWeight:500 }}>{v.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

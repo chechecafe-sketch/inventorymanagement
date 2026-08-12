@@ -8,20 +8,44 @@ export const STORES = [
 
 export const ADMINS = ['Victoria','Fernanda','Luis']
 
+// Nota: café en grano, las leches y los panes se quitaron de aquí — ya no se
+// reportan con los 4 botones de estado, se capturan como cantidad exacta
+// (ver QUANTITY_ITEMS) 3 veces al día. Yogurt griego y carnitas se eliminaron
+// del catálogo a petición del usuario.
 export const CATEGORIES = {
   servicios:   { label:'Servicios',       icon:'⚡', critical:true,  items:['Agua','Luz','Internet'] },
-  cafeteria:   { label:'Cafetería',       icon:'☕', critical:true,  items:['Café en grano','Leche entera','Leche deslactosada','Leche almendra','Leche avena','Agua mineral','Chocolate','Matcha','Horchata','Chai','Azúcar','Sirope vainilla','Sirope curaçao','Agua tónica','Jugo naranja','Sirope mango','Limones','Crema batida','Crema para batir','Coffee Mate','Sobres azúcar','Sobres splenda','Servilletas','Bolsas pan','Rinza','Cafiza'] },
+  cafeteria:   { label:'Cafetería',       icon:'☕', critical:true,  items:['Agua mineral','Chocolate','Matcha','Horchata','Chai','Azúcar','Sirope vainilla','Sirope curaçao','Agua tónica','Jugo naranja','Sirope mango','Limones','Crema batida','Crema para batir','Coffee Mate','Sobres azúcar','Sobres splenda','Servilletas','Bolsas pan','Rinza','Cafiza'] },
   desechables: { label:'Desechables',     icon:'🥤', critical:true,  items:['Vaso cartón 12oz','Vaso cartón 16oz','Vaso cristal 16oz','Tapa 12-16oz','Vaso espresso 4oz','Vaso flat white 8oz','Tapa espresso 4oz','Tapa flat white 8oz'] },
-  cocina:      { label:'Cocina',          icon:'🍳', critical:true,  items:['Cochinita','Carnitas','Jamón','Queso fresco','Queso de cabra','Queso manchego','Chapatas','Pan masa madre','Pan brioche','Frutos rojos','Granola','Pollo','Yogurt griego','Mantequilla','Aceite'] },
+  cocina:      { label:'Cocina',          icon:'🍳', critical:true,  items:['Cochinita','Jamón','Queso fresco','Queso de cabra','Queso manchego','Frutos rojos','Granola','Pollo','Mantequilla','Aceite'] },
   verduras:    { label:'Verduras/Frutas', icon:'🥑', critical:false, items:['Plátano','Jitomate','Naranja','Limones','Aguacates','Chiles secos','Arúgula','Espinaca','Cebolla','Ajo','Chiles verdes'] },
   limpieza:    { label:'Limpieza',        icon:'🧹', critical:false, items:['Pinol','Cloro','Jabón manos','Jabón trastes','Papel baño','Jergas','Guantes trastes','Fibras','Desengrasante','Bolsas basura'] },
 }
 
 export const CRITICAL_ITEMS = [
   'Agua','Luz','Internet',
-  'Café en grano','Leche entera','Leche almendra','Leche avena','Matcha','Chai',
+  'Matcha','Chai',
   'Cochinita','Pollo',
   'Vaso cartón 12oz','Tapa 12-16oz',
+]
+
+// ── Ítems de cantidad exacta ─────────────────────────────────────────────
+// Leche (litros), café (kilos) y pan (piezas): en vez de OK/Poco/Urgente/
+// Agotado, el personal captura el número exacto 3 veces al día (ver SHIFTS).
+export const QUANTITY_ITEMS = {
+  'Leche entera':       { unit:'L',  label:'Litros' },
+  'Leche deslactosada': { unit:'L',  label:'Litros' },
+  'Leche almendra':     { unit:'L',  label:'Litros' },
+  'Leche avena':        { unit:'L',  label:'Litros' },
+  'Café en grano':      { unit:'kg', label:'Kilos' },
+  'Chapatas':           { unit:'pz', label:'Piezas' },
+  'Pan masa madre':     { unit:'pz', label:'Piezas' },
+  'Pan brioche':        { unit:'pz', label:'Piezas' },
+}
+
+export const SHIFTS = [
+  { key:'apertura', label:'Apertura' },
+  { key:'medio',    label:'Turno medio' },
+  { key:'cierre',   label:'Cierre' },
 ]
 
 // Emoji de cantidad en vez de símbolos — más claros de un vistazo y al tocar:
