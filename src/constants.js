@@ -25,22 +25,28 @@ export const CRITICAL_ITEMS = [
   'Agua','Luz','Internet',
   'Matcha','Chai',
   'Cochinita','Pollo',
-  'Vaso cartón 12oz','Tapa 12-16oz',
+  'Vaso cartón 12oz','Tapa 12-16oz','Vaso cristal 16oz',
 ]
 
 // ── Ítems de cantidad exacta ─────────────────────────────────────────────
 // Leche (litros), café (kilos) y pan (piezas): en vez de OK/Poco/Urgente/
 // Agotado, el personal captura el número exacto 3 veces al día (ver SHIFTS).
+// Café va primero en el objeto a propósito: es el ítem prioritario dentro
+// de este grupo (ver PRIORITY_ITEMS) y así aparece primero en la lista.
 export const QUANTITY_ITEMS = {
+  'Café en grano':      { unit:'kg', label:'Kilos' },
   'Leche entera':       { unit:'L',  label:'Litros' },
   'Leche deslactosada': { unit:'L',  label:'Litros' },
   'Leche almendra':     { unit:'L',  label:'Litros' },
   'Leche avena':        { unit:'L',  label:'Litros' },
-  'Café en grano':      { unit:'kg', label:'Kilos' },
   'Chapatas':           { unit:'pz', label:'Piezas' },
   'Pan masa madre':     { unit:'pz', label:'Piezas' },
   'Pan brioche':        { unit:'pz', label:'Piezas' },
 }
+
+// Ítems de cantidad exacta que se destacan como los más importantes a
+// vigilar (aparecen primero + etiqueta ★ PRIORITARIO en la pestaña Stock).
+export const PRIORITY_ITEMS = ['Café en grano']
 
 export const SHIFTS = [
   { key:'apertura', label:'Apertura' },

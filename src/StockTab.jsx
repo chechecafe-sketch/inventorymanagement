@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { QUANTITY_ITEMS, SHIFTS } from './constants'
+import { QUANTITY_ITEMS, SHIFTS, PRIORITY_ITEMS } from './constants'
 import { loadStockCounts, upsertStockCount } from './db'
 import { C, FONT_BODY } from './theme'
 
@@ -64,9 +64,13 @@ export default function StockTab({ store, userName }) {
       {loading ? (
         <div style={{ color: C.textFaint, fontSize: 13, textAlign: 'center', padding: 24 }}>Cargando…</div>
       ) : items.map(([item, cfg]) => (
-        <div key={item} style={{ background: C.card, borderRadius: 12, padding: '13px 14px', marginBottom: 8, border: `1.5px solid ${C.cardBorder}` }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 10 }}>
-            {item} <span style={{ color: C.textFaint, fontWeight: 500, fontSize: 12 }}>({cfg.label})</span>
+        <div key={item} style={{ background: C.card, borderRadius: 12, padding: '13px 14px', marginBottom: 8, border: `1.5px solid ${PRIORITY_ITEMS.includes(item) ? C.critTxt : C.cardBorder}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+            {PRIORITY_ITEMS.includes(item) && (
+              <span style={{ fontSize: 9, background: C.critBg, color: C.critTxt, borderRadius: 4, padding: '2px 6px', fontWeight: 800, letterSpacing: 0.3 }}>★ PRIORITARIO</span>
+            )}
+            <span style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{item}</span>
+            <span style={{ color: C.textFaint, fontWeight: 500, fontSize: 12 }}>({cfg.label})</span>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {SHIFTS.map(s => {
