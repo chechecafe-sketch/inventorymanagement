@@ -2,13 +2,14 @@ import { useState, useEffect, useMemo } from 'react'
 import { STORES, ADMINS, CATEGORIES, CRITICAL_ITEMS } from './constants'
 import { haversineKm, fmtAge, fmtTime, getAgeColor, avgResupplyHours, priorityScore } from './utils'
 import { C, FONT_DISPLAY, FONT_BODY } from './theme'
+import StockPanel from './StockPanel'
 
 // Total de ítems que se trackean por tienda (mismo catálogo base para las 5) —
 // se usa para que la barra de salud sea proporcional de verdad, en vez de
 // saturarse con tiendas que acumulan muchas alertas.
 const TOTAL_TRACKED_ITEMS = Object.values(CATEGORIES).reduce((s, c) => s + c.items.length, 0)
 
-export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats }) {
+export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, stockCounts }) {
   const [tick, setTick] = useState(0)
   const [expandedStore, setExpandedStore] = useState(null)
 
@@ -174,6 +175,8 @@ export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats })
             </div>
           )}
         </div>
+
+        <StockPanel stockCounts={stockCounts || []} />
 
         {/* Distance quick ref */}
         <div style={{ background:C.card, borderRadius:14, padding:'14px 16px', border:`1px solid ${C.cardBorder}`, marginTop:14 }}>

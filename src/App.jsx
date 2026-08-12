@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { STORES, CATEGORIES, CRITICAL_ITEMS } from './constants'
-import { loadAllAlerts, upsertFaltante, loadConsumoStats, loadCustomItems, addCustomItem as dbAddCustomItem, subscribeAlerts } from './db'
+import { loadAllAlerts, upsertFaltante, loadConsumoStats, loadCustomItems, addCustomItem as dbAddCustomItem, subscribeAlerts, loadStockCountsSince } from './db'
 import HomeScreen   from './HomeScreen'
 import LoginScreen  from './LoginScreen'
 import StoreScreen  from './StoreScreen'
@@ -39,6 +39,7 @@ export default function App() {
   const [alerts,      setAlerts]      = useState([])
   const [customItems, setCustomItems] = useState({})   // { [storeId]: { [cat]: [itemName] } }
   const [consumoStats,setConsumoStats]= useState({})   // { [storeId]: [...] }
+  const [stockCounts, setStockCounts] = useState([])   // capturas de stock (leche/café/pan), últimos 7 días, todas las tiendas
   const [loading,     setLoading]     = useState(true)
 
   // ── Load alerts on mount + realtime ───────────────────────────────────────
@@ -89,6 +90,15 @@ export default function App() {
       results[store.id] = await loadConsumoStats(store.id)
     }
     setConsumoStats(results)
+  }, [])
+
+  // ── Load stock history (leche/café/pan) for master — últimos 7 días ───────
+  const loadStockHistory = useCallback(async () => {
+    const d = new Date()
+    d.setDate(d.getDate() - 6)
+    const sinceDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const rows = await loadStockCountsSince(sinceDate)
+    setStockCounts(rows)
   }, [])
 
   // ── Set item status directly (un toque = estado exacto, ya no cíclico) ────
@@ -151,6 +161,7 @@ export default function App() {
     setUserName(name)
     setIsAdmin(true)
     loadAllConsumo()
+    loadStockHistory()
     setView('master')
   }
 
@@ -194,6 +205,7 @@ export default function App() {
       onBack={goHome}
       onMarkOk={handleMarkOk}
       consumoStats={consumoStats}
+      stockCounts={stockCounts}
     />
   )
 

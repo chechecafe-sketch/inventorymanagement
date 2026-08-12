@@ -157,6 +157,17 @@ export async function loadStockCounts(storeId, countDate) {
   return data || []
 }
 
+// Histórico de stock para el Dashboard Master — todas las tiendas, últimos N días
+export async function loadStockCountsSince(sinceDate) {
+  const { data, error } = await supabase
+    .from('stock_counts')
+    .select('*')
+    .gte('count_date', sinceDate)
+    .order('count_date', { ascending: true })
+  if (error) console.error(error)
+  return data || []
+}
+
 export async function upsertStockCount({ storeId, item, unit, shift, quantity, reportedBy, countDate }) {
   const { error } = await supabase
     .from('stock_counts')
