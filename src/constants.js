@@ -25,10 +25,10 @@ export const CRITICAL_ITEMS = [
 ]
 
 export const STATUS_CFG = {
-  ok:     { bg:'#2d6a4f', txt:'#fff',     label:'OK',      short:'✓', weight:0 },
-  low:    { bg:'#e9c46a', txt:'#1a1a1a',  label:'Poco',    short:'~', weight:1 },
-  urgent: { bg:'#e76f51', txt:'#fff',     label:'Urgente', short:'!', weight:2 },
-  out:    { bg:'#c1121f', txt:'#fff',     label:'Agotado', short:'✕', weight:3 },
+  ok:     { bg:'#34d399', txt:'#0d1f16',  label:'OK',      short:'✓', weight:0 },
+  low:    { bg:'#fbbf24', txt:'#241a04',  label:'Poco',    short:'~', weight:1 },
+  urgent: { bg:'#fb923c', txt:'#241202',  label:'Urgente', short:'!', weight:2 },
+  out:    { bg:'#f87171', txt:'#240707',  label:'Agotado', short:'✕', weight:3 },
 }
 
 export const STATUS_ORDER = ['ok','low','urgent','out']

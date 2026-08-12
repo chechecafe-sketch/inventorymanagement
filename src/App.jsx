@@ -5,6 +5,7 @@ import HomeScreen   from './HomeScreen'
 import LoginScreen  from './LoginScreen'
 import StoreScreen  from './StoreScreen'
 import MasterScreen from './MasterScreen'
+import { C, FONT_DISPLAY } from './theme'
 
 function enrichAlerts(raw) {
   return raw.map(a => ({
@@ -155,8 +156,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <div style={{ minHeight:'100vh', background:'#f7f5f0', display:'flex', alignItems:'center', justifyContent:'center' }}>
-        <div style={{ fontFamily:"'DM Serif Display'", color:'#2d2d2a', fontSize:22, opacity:0.4 }}>Che Che Café</div>
+      <div style={{ minHeight:'100vh', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <div style={{ fontFamily:FONT_DISPLAY, fontWeight:700, color:C.text, fontSize:24, opacity:0.5, letterSpacing:-0.5 }}>Che Che Café</div>
       </div>
     )
   }

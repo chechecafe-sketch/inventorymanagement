@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { CATEGORIES, STATUS_CFG, CRITICAL_ITEMS } from './constants'
 import { fmtTime, fmtAge, getAgeColor } from './utils'
+import { C, FONT_DISPLAY, FONT_BODY } from './theme'
 
 const PENDIENTES = 'pendientes'
 const STATUS_KEYS = ['ok', 'low', 'urgent', 'out']
@@ -52,17 +53,17 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f7f5f0', paddingBottom: 80 }}>
+    <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 90, fontFamily: FONT_BODY }}>
       {/* Header */}
-      <div style={{ background: store.color, padding: '14px 16px', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+      <div style={{ background: C.bgHeader, padding: '16px 16px', position: 'sticky', top: 0, zIndex: 100, borderBottom:`1px solid ${C.divider}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <button onClick={onBack}
-            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', fontSize: 24, cursor: 'pointer', padding: 0 }}>‹</button>
+            style={{ background: 'none', border: 'none', color: C.textDim, fontSize: 26, cursor: 'pointer', padding: 0 }}>‹</button>
           <div>
-            <div style={{ fontFamily: "'DM Serif Display'", color: '#fff', fontSize: 18 }}>{store.fullName}</div>
-            <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>
+            <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, color: C.text, fontSize: 20 }}>{store.fullName}</div>
+            <div style={{ color: C.textDim, fontSize: 12, marginTop:2 }}>
               {userName} · {new Date().toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}
-              {isAdmin && <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 4, padding: '1px 6px', marginLeft: 6, fontSize: 10 }}>ADMIN</span>}
+              {isAdmin && <span style={{ background: C.chipBg, color:C.text, borderRadius: 4, padding: '1px 6px', marginLeft: 6, fontSize: 10, fontWeight:700 }}>ADMIN</span>}
             </div>
           </div>
         </div>
@@ -70,14 +71,14 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
         {/* Category tabs — Pendientes va primero */}
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' }}>
           <button onClick={() => setActiveCat(PENDIENTES)}
-            style={{ background: activeCat === PENDIENTES ? '#fff' : 'rgba(255,255,255,0.18)',
-              color: activeCat === PENDIENTES ? store.color : '#fff',
-              border: 'none', borderRadius: 20, padding: '5px 11px', fontSize: 11, fontWeight: 700,
-              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, position: 'relative' }}>
+            style={{ background: activeCat === PENDIENTES ? C.text : C.chipBg,
+              color: activeCat === PENDIENTES ? '#000' : C.textDim,
+              border: 'none', borderRadius: 20, padding: '7px 13px', fontSize: 12, fontWeight: 800,
+              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, position: 'relative', fontFamily:FONT_BODY }}>
             📋 Pendientes
             {storeAlerts.length > 0 && (
-              <span style={{ position: 'absolute', top: -3, right: -3, background: '#c1121f',
-                color: '#fff', borderRadius: 10, fontSize: 9, padding: '1px 4px', fontWeight: 700 }}>
+              <span style={{ position: 'absolute', top: -4, right: -4, background: C.out,
+                color: '#240707', borderRadius: 10, fontSize: 9, padding: '1px 4px', fontWeight: 800 }}>
                 {storeAlerts.length}
               </span>
             )}
@@ -86,14 +87,14 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
             const catAlerts = storeAlerts.filter(a => a.category === key)
             return (
               <button key={key} onClick={() => setActiveCat(key)}
-                style={{ background: activeCat === key ? '#fff' : 'rgba(255,255,255,0.18)',
-                  color: activeCat === key ? store.color : '#fff',
-                  border: 'none', borderRadius: 20, padding: '5px 11px', fontSize: 11, fontWeight: 500,
-                  cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, position: 'relative' }}>
+                style={{ background: activeCat === key ? C.text : C.chipBg,
+                  color: activeCat === key ? '#000' : C.textDim,
+                  border: 'none', borderRadius: 20, padding: '7px 13px', fontSize: 12, fontWeight: 600,
+                  cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, position: 'relative', fontFamily:FONT_BODY }}>
                 {cat.icon} {cat.label}
                 {catAlerts.length > 0 && (
-                  <span style={{ position: 'absolute', top: -3, right: -3, background: '#c1121f',
-                    color: '#fff', borderRadius: 10, fontSize: 9, padding: '1px 4px', fontWeight: 700 }}>
+                  <span style={{ position: 'absolute', top: -4, right: -4, background: C.out,
+                    color: '#240707', borderRadius: 10, fontSize: 9, padding: '1px 4px', fontWeight: 800 }}>
                     {catAlerts.length}
                   </span>
                 )}
@@ -103,53 +104,55 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
         </div>
       </div>
 
-      <div style={{ padding: '12px 14px' }}>
+      <div style={{ padding: '14px 14px' }}>
         {/* Buscador */}
         <input value={query} onChange={e => setQuery(e.target.value)}
           placeholder="🔍 Buscar ítem..."
-          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 13, marginBottom: 10, boxSizing: 'border-box' }}
+          style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: `1.5px solid ${C.cardBorder}`, fontSize: 14, marginBottom: 12,
+            boxSizing: 'border-box', background:C.card, color:C.text, fontFamily:FONT_BODY }}
         />
 
         {activeCat === PENDIENTES ? (
-          <div style={{ fontSize: 11, color: '#888', marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: C.textFaint, marginBottom: 10 }}>
             {rows.length === 0 ? '✓ Nada pendiente en esta tienda ahora mismo' : `Toca un botón para actualizar el estado · ${rows.length} pendiente${rows.length === 1 ? '' : 's'}`}
           </div>
         ) : (
-          <div style={{ fontSize: 11, color: '#888', marginBottom: 10 }}>Toca un botón para actualizar el estado · {CATEGORIES[activeCat].label}</div>
+          <div style={{ fontSize: 12, color: C.textFaint, marginBottom: 10 }}>Toca un botón para actualizar el estado · {CATEGORIES[activeCat].label}</div>
         )}
 
         {rows.map(({ item, category }) => {
           const st = getStatus(item)
           const alert = getAlert(item)
           const isCrit = CRITICAL_ITEMS.includes(item) || category === 'servicios'
+          const borderCol = st === 'ok' ? C.cardBorder : STATUS_CFG[st].bg
 
           return (
             <div key={`${category}-${item}`} style={{
-              background: '#fff', borderRadius: 10, padding: '11px 13px', marginBottom: 7,
-              border: `1.5px solid ${st === 'ok' ? '#e8e4dc' : st === 'low' ? '#e9c46a' : st === 'urgent' ? '#e76f51' : '#c1121f'}`,
+              background: C.card, borderRadius: 12, padding: '13px 14px', marginBottom: 8,
+              border: `1.5px solid ${borderCol}`,
             }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: 140 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     {activeCat === PENDIENTES && (
-                      <span style={{ fontSize: 9, color: '#999' }}>{CATEGORIES[category]?.icon}</span>
+                      <span style={{ fontSize: 10, color: C.textFaint }}>{CATEGORIES[category]?.icon}</span>
                     )}
-                    {isCrit && <span style={{ fontSize: 9, background: '#fff0ee', color: '#c1121f', borderRadius: 4, padding: '1px 5px', fontWeight: 700, letterSpacing: 0.3 }}>★ CRÍTICO</span>}
-                    <span style={{ fontSize: 14, fontWeight: 500, color: '#1a1a1a' }}>{item}</span>
+                    {isCrit && <span style={{ fontSize: 9, background: C.critBg, color: C.critTxt, borderRadius: 4, padding: '2px 6px', fontWeight: 800, letterSpacing: 0.3 }}>★ CRÍTICO</span>}
+                    <span style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{item}</span>
                   </div>
 
                   {alert && (
-                    <div style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      <span style={{ fontSize: 11, color: '#666' }}>👤 {alert.reported_by}</span>
-                      <span style={{ fontSize: 11, color: '#666' }}>🕐 {fmtTime(alert.reported_at)}</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: getAgeColor(alert.reported_at) }}>⏱ {fmtAge(alert.reported_at)}</span>
-                      {alert.resolved_by && <span style={{ fontSize: 11, color: '#4a7c59' }}>🔧 {alert.resolved_by}</span>}
+                    <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 9 }}>
+                      <span style={{ fontSize: 11, color: C.textDim }}>👤 {alert.reported_by}</span>
+                      <span style={{ fontSize: 11, color: C.textDim }}>🕐 {fmtTime(alert.reported_at)}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: getAgeColor(alert.reported_at) }}>⏱ {fmtAge(alert.reported_at)}</span>
+                      {alert.resolved_by && <span style={{ fontSize: 11, color: C.ok }}>🔧 {alert.resolved_by}</span>}
                     </div>
                   )}
                 </div>
 
                 {/* 4 botones de estado directo — un toque deja el estado exacto */}
-                <div style={{ display: 'flex', gap: 4 }}>
+                <div style={{ display: 'flex', gap: 5 }}>
                   {STATUS_KEYS.map(key => {
                     const sc = STATUS_CFG[key]
                     const active = st === key
@@ -157,10 +160,10 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
                       <button key={key} onClick={() => onSetStatus(store.id, item, category, key)}
                         title={sc.label}
                         style={{
-                          background: active ? sc.bg : '#f4f2ee',
-                          color: active ? sc.txt : '#999',
-                          border: active ? 'none' : '1px solid #e8e4dc',
-                          borderRadius: 7, width: 30, height: 30, fontSize: 13, fontWeight: 700,
+                          background: active ? sc.bg : C.chipBg,
+                          color: active ? sc.txt : C.textFaint,
+                          border: active ? 'none' : `1px solid ${C.cardBorder}`,
+                          borderRadius: 8, width: 34, height: 34, fontSize: 14, fontWeight: 800,
                           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                           transform: active ? 'scale(1.05)' : 'none', transition: 'all 0.1s',
                         }}>
@@ -172,10 +175,10 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
               </div>
 
               {isAdmin && st !== 'ok' && (
-                <div style={{ marginTop: 8, textAlign: 'right' }}>
+                <div style={{ marginTop: 10, textAlign: 'right' }}>
                   <button onClick={() => onMarkOk(store.id, item)}
-                    style={{ background: '#e8f5e9', color: '#2d6a4f', border: '1px solid #b7dfc5',
-                      borderRadius: 6, padding: '3px 8px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                    style={{ background: 'rgba(52,211,153,0.12)', color: C.ok, border: `1px solid ${C.ok}`,
+                      borderRadius: 7, padding: '4px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                     ✓ Surtido
                   </button>
                 </div>
@@ -186,25 +189,26 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
 
         {/* Add custom item — solo tiene sentido dentro de una categoría concreta */}
         {activeCat !== PENDIENTES && (
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <input value={newItemVal} onChange={e => setNewItemVal(e.target.value)}
               placeholder="+ Agregar ítem..."
-              style={{ flex: 1, padding: '9px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 13 }}
+              style={{ flex: 1, padding: '11px 14px', borderRadius: 10, border: `1.5px solid ${C.cardBorder}`, fontSize: 14,
+                background:C.card, color:C.text, fontFamily:FONT_BODY, boxSizing:'border-box' }}
               onKeyDown={e => { if (e.key === 'Enter' && newItemVal.trim()) { onAddItem(activeCat, newItemVal.trim()); setNewItemVal('') } }}
             />
             <button onClick={() => { if (newItemVal.trim()) { onAddItem(activeCat, newItemVal.trim()); setNewItemVal('') } }}
-              style={{ background: store.color, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 14px', fontSize: 16, cursor: 'pointer' }}>+</button>
+              style={{ background: C.text, color: '#000', border: 'none', borderRadius: 10, padding: '11px 16px', fontSize: 18, fontWeight:800, cursor: 'pointer' }}>+</button>
           </div>
         )}
       </div>
 
       {/* Status legend */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff',
-        borderTop: '1px solid #e8e4dc', padding: '9px 16px', display: 'flex', gap: 14, justifyContent: 'center' }}>
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: C.bgHeader,
+        borderTop: `1px solid ${C.divider}`, padding: '11px 16px', display: 'flex', gap: 16, justifyContent: 'center' }}>
         {Object.entries(STATUS_CFG).map(([k, v]) => (
-          <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 16, height: 16, borderRadius: 4, background: v.bg, color: v.txt, fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{v.short}</div>
-            <span style={{ fontSize: 11, color: '#555' }}>{v.label}</span>
+          <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ width: 18, height: 18, borderRadius: 5, background: v.bg, color: v.txt, fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{v.short}</div>
+            <span style={{ fontSize: 12, color: C.textDim, fontWeight:500 }}>{v.label}</span>
           </div>
         ))}
       </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ADMINS, ADMIN_PIN } from './constants'
+import { C, FONT_DISPLAY, FONT_BODY } from './theme'
 
 export default function LoginScreen({ store, onLogin, onAdmin }) {
   const [name, setName] = useState('')
@@ -19,61 +20,63 @@ export default function LoginScreen({ store, onLogin, onAdmin }) {
   }
 
   return (
-    <div style={{ minHeight:'100vh', background:'#f7f5f0' }}>
-      <div style={{ background: store ? store.color : '#2d2d2a', padding:'20px' }}>
-        <div style={{ fontFamily:"'DM Serif Display'", color:'#fff', fontSize:22 }}>
+    <div style={{ minHeight:'100vh', background:C.bg, fontFamily:FONT_BODY }}>
+      <div style={{ background: C.bgHeader, padding:'26px 20px', borderBottom:`1px solid ${C.divider}` }}>
+        <div style={{ fontFamily:FONT_DISPLAY, fontWeight:700, color:C.text, fontSize:26, letterSpacing:-0.5 }}>
           {store ? store.fullName : 'Che Che Café'}
         </div>
-        <div style={{ color:'rgba(255,255,255,0.6)', fontSize:13, marginTop:2 }}>
+        <div style={{ color:C.textDim, fontSize:13, marginTop:4 }}>
           {store ? store.address : 'Dashboard de Faltantes'}
         </div>
       </div>
 
       <div style={{ padding:'28px 20px' }}>
         {/* Tab switcher */}
-        <div style={{ display:'flex', gap:8, marginBottom:24 }}>
+        <div style={{ display:'flex', gap:8, marginBottom:26 }}>
           {['employee','admin'].map(t => (
             <button key={t} onClick={() => { setTab(t); setErr('') }}
-              style={{ flex:1, padding:'9px', borderRadius:9, border:'none', fontSize:13, fontWeight:600, cursor:'pointer',
-                background: tab===t ? '#2d2d2a' : '#e8e4dc',
-                color: tab===t ? '#fff' : '#666' }}>
+              style={{ flex:1, padding:'12px', borderRadius:10, border:'none', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:FONT_BODY,
+                background: tab===t ? C.text : C.card,
+                color: tab===t ? '#000' : C.textDim }}>
               {t === 'employee' ? '👤 Empleado' : '🔑 Admin'}
             </button>
           ))}
         </div>
 
-        <div style={{ fontWeight:600, fontSize:15, marginBottom:6, color:'#1a1a1a' }}>Tu nombre</div>
+        <div style={{ fontWeight:700, fontSize:15, marginBottom:8, color:C.text, fontFamily:FONT_DISPLAY }}>Tu nombre</div>
         {tab === 'admin' ? (
           <select value={name} onChange={e => setName(e.target.value)}
-            style={{ width:'100%', padding:'12px 14px', borderRadius:10, border:'1.5px solid #ddd', fontSize:15, background:'#fff', marginBottom:14 }}>
+            style={{ width:'100%', padding:'14px', borderRadius:12, border:`1.5px solid ${C.cardBorder}`, fontSize:16, background:C.card, color:C.text, marginBottom:16, fontFamily:FONT_BODY }}>
             <option value=''>Selecciona...</option>
             {ADMINS.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
         ) : (
           <input value={name} onChange={e => setName(e.target.value)}
             placeholder="Tu nombre..."
-            style={{ width:'100%', padding:'12px 14px', borderRadius:10, border:'1.5px solid #ddd', fontSize:15, marginBottom:14 }}
+            style={{ width:'100%', padding:'14px', borderRadius:12, border:`1.5px solid ${C.cardBorder}`, fontSize:16, marginBottom:16,
+              background:C.card, color:C.text, fontFamily:FONT_BODY, boxSizing:'border-box' }}
             onKeyDown={e => e.key==='Enter' && handleEmployee()}
           />
         )}
 
         {tab === 'admin' && (
           <>
-            <div style={{ fontWeight:600, fontSize:15, marginBottom:6, color:'#1a1a1a' }}>PIN de Admin</div>
+            <div style={{ fontWeight:700, fontSize:15, marginBottom:8, color:C.text, fontFamily:FONT_DISPLAY }}>PIN de Admin</div>
             <input type="password" value={pin} onChange={e => setPin(e.target.value)}
               placeholder="●●●●"
-              style={{ width:'100%', padding:'12px 14px', borderRadius:10, border:'1.5px solid #ddd', fontSize:22, letterSpacing:10, marginBottom:14 }}
+              style={{ width:'100%', padding:'14px', borderRadius:12, border:`1.5px solid ${C.cardBorder}`, fontSize:24, letterSpacing:10, marginBottom:16,
+                background:C.card, color:C.text, fontFamily:FONT_BODY, boxSizing:'border-box' }}
               onKeyDown={e => e.key==='Enter' && handleAdmin()}
             />
           </>
         )}
 
-        {err && <div style={{ color:'#c1121f', fontSize:13, marginBottom:10, fontWeight:500 }}>⚠️ {err}</div>}
+        {err && <div style={{ color:C.out, fontSize:13, marginBottom:12, fontWeight:600 }}>⚠️ {err}</div>}
 
         <button
           onClick={tab === 'admin' ? handleAdmin : handleEmployee}
-          style={{ width:'100%', background: store ? store.color : '#2d2d2a', color:'#fff', border:'none',
-            borderRadius:10, padding:'14px', fontSize:15, fontWeight:600, cursor:'pointer' }}>
+          style={{ width:'100%', background: C.text, color:'#000', border:'none',
+            borderRadius:12, padding:'16px', fontSize:16, fontWeight:800, cursor:'pointer', fontFamily:FONT_DISPLAY }}>
           Entrar →
         </button>
       </div>
