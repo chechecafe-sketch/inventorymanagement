@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { CATEGORIES, STATUS_CFG, CRITICAL_ITEMS } from './constants'
 import { fmtTime, fmtAge, getAgeColor } from './utils'
 import { C, FONT_DISPLAY, FONT_BODY } from './theme'
@@ -29,24 +29,50 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
   const getStatus = (item) => alertMap[item]?.status || 'ok'
   const getAlert  = (item) => alertMap[item] || null
 
-  // ── Build the row list for the active tab ──────────────────────────────
-  let rows
-  if (activeCat === PENDIENTES) {
-    rows = storeAlerts
-      .slice()
-      .sort((a, b) =>
-        (STATUS_CFG[b.status]?.weight || 0) - (STATUS_CFG[a.status]?.weight || 0) ||
-        new Date(a.reported_at) - new Date(b.reported_at)
-      )
-      .map(a => ({ item: a.item, category: a.category }))
-  } else {
-    const catData = CATEGORIES[activeCat]
-    const allItems = [...catData.items, ...(customItems[activeCat] || [])]
-    rows = allItems
-      .map(item => ({ item, category: activeCat }))
+  // ── Orden congelado ──────────────────────────────────────────────────────
+  // Antes la lista se reordenaba en cada render según el estado actual de cada
+  // ítem: en cuanto tocabas un botón, ese ítem saltaba de posición (o
+  // desaparecía, en Pendientes) y el dedo terminaba tocando otro ítem sin
+  // querer — se sentía "raro" al tocar. Ahora el orden se calcula una sola vez
+  // al entrar a la pestaña (o al agregar un ítem nuevo) y se queda fijo
+  // mientras reportas; los botones y colores sí se actualizan al instante,
+  // solo la posición no se mueve. Para refrescar el orden, vuelve a tocar la
+  // misma pestaña.
+  const buildOrder = useCallback((cat) => {
+    if (cat === PENDIENTES) {
+      return storeAlerts
+        .slice()
+        .sort((a, b) =>
+          (STATUS_CFG[b.status]?.weight || 0) - (STATUS_CFG[a.status]?.weight || 0) ||
+          new Date(a.reported_at) - new Date(b.reported_at)
+        )
+        .map(a => ({ item: a.item, category: a.category }))
+    }
+    const catData = CATEGORIES[cat]
+    const allItems = [...catData.items, ...(customItems[cat] || [])]
+    return allItems
+      .map(item => ({ item, category: cat }))
       .sort((a, b) => (STATUS_CFG[getStatus(b.item)]?.weight || 0) - (STATUS_CFG[getStatus(a.item)]?.weight || 0))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeAlerts, customItems])
+
+  const [order, setOrder] = useState(() => buildOrder(PENDIENTES))
+  const customCount = (customItems[activeCat] || []).length
+
+  useEffect(() => {
+    setOrder(buildOrder(activeCat))
+    // Se recalcula al cambiar de pestaña, de tienda, o al agregar un ítem
+    // nuevo a la categoría activa — no cuando solo cambia un estado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCat, store.id, customCount])
+
+  const selectCat = (cat) => {
+    if (cat === activeCat) setOrder(buildOrder(cat)) // re-tocar la pestaña = refrescar orden
+    else setActiveCat(cat)
   }
 
+  // ── Build the row list for the active tab ──────────────────────────────
+  let rows = order
   if (query.trim()) {
     const q = query.trim().toLowerCase()
     rows = rows.filter(r => r.item.toLowerCase().includes(q))
@@ -70,7 +96,7 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
 
         {/* Category tabs — Pendientes va primero */}
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' }}>
-          <button onClick={() => setActiveCat(PENDIENTES)}
+          <button onClick={() => selectCat(PENDIENTES)}
             style={{ background: activeCat === PENDIENTES ? C.text : C.chipBg,
               color: activeCat === PENDIENTES ? '#000' : C.textDim,
               border: 'none', borderRadius: 20, padding: '7px 13px', fontSize: 12, fontWeight: 800,
@@ -86,7 +112,7 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
           {Object.entries(CATEGORIES).map(([key, cat]) => {
             const catAlerts = storeAlerts.filter(a => a.category === key)
             return (
-              <button key={key} onClick={() => setActiveCat(key)}
+              <button key={key} onClick={() => selectCat(key)}
                 style={{ background: activeCat === key ? C.text : C.chipBg,
                   color: activeCat === key ? '#000' : C.textDim,
                   border: 'none', borderRadius: 20, padding: '7px 13px', fontSize: 12, fontWeight: 600,
@@ -114,7 +140,7 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
 
         {activeCat === PENDIENTES ? (
           <div style={{ fontSize: 12, color: C.textFaint, marginBottom: 10 }}>
-            {rows.length === 0 ? '✓ Nada pendiente en esta tienda ahora mismo' : `Toca un botón para actualizar el estado · ${rows.length} pendiente${rows.length === 1 ? '' : 's'}`}
+            {storeAlerts.length === 0 ? '✓ Nada pendiente en esta tienda ahora mismo' : `Toca un botón para actualizar el estado · ${storeAlerts.length} pendiente${storeAlerts.length === 1 ? '' : 's'}`}
           </div>
         ) : (
           <div style={{ fontSize: 12, color: C.textFaint, marginBottom: 10 }}>Toca un botón para actualizar el estado · {CATEGORIES[activeCat].label}</div>
@@ -151,8 +177,10 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
                   )}
                 </div>
 
-                {/* 4 botones de estado directo — un toque deja el estado exacto */}
-                <div style={{ display: 'flex', gap: 5 }}>
+                {/* 4 botones de estado directo — un toque deja el estado exacto.
+                    44x44 con separación amplia: objetivo de toque cómodo, para
+                    no fallar el botón ni tocar el de al lado por accidente. */}
+                <div style={{ display: 'flex', gap: 8 }}>
                   {STATUS_KEYS.map(key => {
                     const sc = STATUS_CFG[key]
                     const active = st === key
@@ -162,10 +190,11 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
                         style={{
                           background: active ? sc.bg : C.chipBg,
                           color: active ? sc.txt : C.textFaint,
-                          border: active ? 'none' : `1px solid ${C.cardBorder}`,
-                          borderRadius: 8, width: 34, height: 34, fontSize: 14, fontWeight: 800,
+                          border: active ? `2px solid ${sc.bg}` : `1px solid ${C.cardBorder}`,
+                          borderRadius: 10, width: 44, height: 44, fontSize: 20, lineHeight: 1,
                           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          transform: active ? 'scale(1.05)' : 'none', transition: 'all 0.1s',
+                          opacity: active ? 1 : 0.55,
+                          transform: active ? 'scale(1.08)' : 'none', transition: 'transform 0.1s, opacity 0.1s',
                         }}>
                         {sc.short}
                       </button>
@@ -207,7 +236,7 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
         borderTop: `1px solid ${C.divider}`, padding: '11px 16px', display: 'flex', gap: 16, justifyContent: 'center' }}>
         {Object.entries(STATUS_CFG).map(([k, v]) => (
           <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <div style={{ width: 18, height: 18, borderRadius: 5, background: v.bg, color: v.txt, fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{v.short}</div>
+            <div style={{ width: 22, height: 22, borderRadius: 6, background: v.bg, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{v.short}</div>
             <span style={{ fontSize: 12, color: C.textDim, fontWeight:500 }}>{v.label}</span>
           </div>
         ))}

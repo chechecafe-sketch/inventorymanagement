@@ -24,11 +24,13 @@ export const CRITICAL_ITEMS = [
   'Vaso cartón 12oz','Tapa 12-16oz',
 ]
 
+// Emoji de cantidad en vez de símbolos — más claros de un vistazo y al tocar:
+// feliz = hay bastante, serio = va quedando poco, preocupado = urgente, cara roja = ya no hay.
 export const STATUS_CFG = {
-  ok:     { bg:'#34d399', txt:'#0d1f16',  label:'OK',      short:'✓', weight:0 },
-  low:    { bg:'#fbbf24', txt:'#241a04',  label:'Poco',    short:'~', weight:1 },
-  urgent: { bg:'#fb923c', txt:'#241202',  label:'Urgente', short:'!', weight:2 },
-  out:    { bg:'#f87171', txt:'#240707',  label:'Agotado', short:'✕', weight:3 },
+  ok:     { bg:'#34d399', txt:'#0d1f16',  label:'OK',      short:'😊', weight:0 },
+  low:    { bg:'#fbbf24', txt:'#241a04',  label:'Poco',    short:'😐', weight:1 },
+  urgent: { bg:'#fb923c', txt:'#241202',  label:'Urgente', short:'😟', weight:2 },
+  out:    { bg:'#f87171', txt:'#240707',  label:'Agotado', short:'😡', weight:3 },
 }
 
 export const STATUS_ORDER = ['ok','low','urgent','out']
