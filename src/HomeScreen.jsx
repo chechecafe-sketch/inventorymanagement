@@ -11,8 +11,8 @@ export default function HomeScreen({ alerts, onSelectStore, onMaster }) {
       <div style={{ background:C.bgHeader, padding:'22px 20px', position:'sticky', top:0, zIndex:100, borderBottom:`1px solid ${C.divider}` }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div>
-            <div style={{ fontFamily:FONT_DISPLAY, fontWeight:700, color:C.text, fontSize:28, letterSpacing:-0.5 }}>Che Che Café</div>
-            <div style={{ color:C.textDim, fontSize:12, marginTop:2, textTransform:'uppercase', letterSpacing:1.2, fontWeight:600 }}>Sistema de Faltantes</div>
+            <img src="/che-che-logo-white.png" alt="Che Che Café" style={{ height:30, display:'block' }} />
+            <div style={{ color:C.textDim, fontSize:12, marginTop:6, textTransform:'uppercase', letterSpacing:1.2, fontWeight:600 }}>Sistema de Faltantes</div>
           </div>
           <div style={{ display:'flex', gap:8, alignItems:'center' }}>
             {critAlerts.length > 0 && (

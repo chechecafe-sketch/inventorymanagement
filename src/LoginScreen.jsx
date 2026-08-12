@@ -22,10 +22,14 @@ export default function LoginScreen({ store, onLogin, onAdmin }) {
   return (
     <div style={{ minHeight:'100vh', background:C.bg, fontFamily:FONT_BODY }}>
       <div style={{ background: C.bgHeader, padding:'26px 20px', borderBottom:`1px solid ${C.divider}` }}>
-        <div style={{ fontFamily:FONT_DISPLAY, fontWeight:700, color:C.text, fontSize:26, letterSpacing:-0.5 }}>
-          {store ? store.fullName : 'Che Che Café'}
-        </div>
-        <div style={{ color:C.textDim, fontSize:13, marginTop:4 }}>
+        {store ? (
+          <div style={{ fontFamily:FONT_DISPLAY, fontWeight:700, color:C.text, fontSize:26, letterSpacing:-0.5 }}>
+            {store.fullName}
+          </div>
+        ) : (
+          <img src="/che-che-logo-white.png" alt="Che Che Café" style={{ height:32, display:'block' }} />
+        )}
+        <div style={{ color:C.textDim, fontSize:13, marginTop: store ? 4 : 10 }}>
           {store ? store.address : 'Dashboard de Faltantes'}
         </div>
       </div>
