@@ -9,7 +9,7 @@ import StockPanel from './StockPanel'
 // saturarse con tiendas que acumulan muchas alertas.
 const TOTAL_TRACKED_ITEMS = Object.values(CATEGORIES).reduce((s, c) => s + c.items.length, 0)
 
-export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, stockCounts }) {
+export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, stockCounts, onEnterStore }) {
   const [tick, setTick] = useState(0)
   const [expandedStore, setExpandedStore] = useState(null)
 
@@ -94,6 +94,13 @@ export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, s
                 <div style={{ display:'flex', alignItems:'center', gap:9 }}>
                   {cr>0 && <span style={{ color:C.out, fontWeight:800, fontSize:14 }}>🔴{cr}</span>}
                   <span style={{ fontSize:13, fontWeight:700, color:sa.length>0?C.urgent:C.ok }}>{sa.length} alertas</span>
+                  {onEnterStore && (
+                    <button onClick={e => { e.stopPropagation(); onEnterStore(store) }}
+                      style={{ background:C.text, color:'#000', border:'none', borderRadius:7,
+                        padding:'5px 10px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                      Entrar →
+                    </button>
+                  )}
                   <span style={{ color:C.textFaint, fontSize:18 }}>{isExpanded?'∧':'∨'}</span>
                 </div>
               </div>

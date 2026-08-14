@@ -34,6 +34,13 @@ export default function StockTab({ store, userName }) {
     return row ? row.quantity : ''
   }
 
+  // Huella de quién tocó el número — para que quede claro quién reportó
+  // cada captura, no solo qué valor quedó.
+  const getReporter = (item, shift) => {
+    const row = counts.find(c => c.item === item && c.shift === shift)
+    return row?.reported_by || null
+  }
+
   const handleSave = async (item, unit, shift, rawValue) => {
     if (rawValue === '' || rawValue === null || rawValue === undefined) return
     const quantity = Number(rawValue)
@@ -41,8 +48,8 @@ export default function StockTab({ store, userName }) {
 
     setCounts(prev => {
       const exists = prev.find(c => c.item === item && c.shift === shift)
-      if (exists) return prev.map(c => (c.item === item && c.shift === shift) ? { ...c, quantity } : c)
-      return [...prev, { item, shift, quantity, unit }]
+      if (exists) return prev.map(c => (c.item === item && c.shift === shift) ? { ...c, quantity, reported_by: userName } : c)
+      return [...prev, { item, shift, quantity, unit, reported_by: userName }]
     })
 
     const ok = await upsertStockCount({ storeId: store.id, item, unit, shift, quantity, reportedBy: userName, countDate: date })
@@ -78,6 +85,7 @@ export default function StockTab({ store, userName }) {
               const val = getValue(item, s.key)
               const hasValue = val !== ''
               const justSaved = savedFlash === key
+              const reporter = getReporter(item, s.key)
               return (
                 <div key={s.key} style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
@@ -99,6 +107,16 @@ export default function StockTab({ store, userName }) {
                       boxSizing: 'border-box', fontFamily: FONT_BODY, transition: 'border-color 0.2s',
                     }}
                   />
+                  {/* Huella de quién reportó este número — visible para que el
+                      admin pueda ver quién está tocando qué sin adivinar. */}
+                  {reporter && (
+                    <div style={{
+                      fontSize: 9, color: C.textFaint, marginTop: 3, textAlign: 'center',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }} title={`Reportado por ${reporter}`}>
+                      👤 {reporter}
+                    </div>
+                  )}
                 </div>
               )
             })}

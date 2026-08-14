@@ -36,6 +36,10 @@ export default function App() {
   const [activeStore, setActiveStore] = useState(initialRoute.store)
   const [userName,    setUserName]    = useState('')
   const [isAdmin,     setIsAdmin]     = useState(false)
+  // De dónde entramos a una tienda — así "‹ volver" regresa al lugar correcto
+  // (Home si es empleado normal, Dashboard Master si el admin brincó desde ahí,
+  // sin pedirle el PIN otra vez).
+  const [enteredFrom, setEnteredFrom] = useState('home') // 'home' | 'master'
   const [alerts,      setAlerts]      = useState([])
   const [customItems, setCustomItems] = useState({})   // { [storeId]: { [cat]: [itemName] } }
   const [consumoStats,setConsumoStats]= useState({})   // { [storeId]: [...] }
@@ -140,6 +144,7 @@ export default function App() {
   const selectStore = (store) => {
     window.history.pushState({}, '', `/t/${store.id}`)
     setActiveStore(store)
+    setEnteredFrom('home')
     setView('login')
     loadStoreCustomItems(store.id)
   }
@@ -162,6 +167,24 @@ export default function App() {
     setIsAdmin(true)
     loadAllConsumo()
     loadStockHistory()
+    setView('master')
+  }
+
+  // ── Admin: entrar/brincar directo a una tienda sin volver a Home ni pedir
+  // login otra vez (ya está autenticado como admin desde /admin). Así puede
+  // recorrer las 5 tiendas seguidas. ─────────────────────────────────────
+  const enterStoreAsAdmin = (store) => {
+    window.history.pushState({}, '', `/t/${store.id}`)
+    setActiveStore(store)
+    setEnteredFrom('master')
+    setView('store')
+    loadStoreCustomItems(store.id)
+  }
+
+  // Volver al Dashboard Master sin re-pedir PIN (ya autenticado en esta sesión).
+  const backToMaster = () => {
+    window.history.pushState({}, '', '/admin')
+    setActiveStore(null)
     setView('master')
   }
 
@@ -191,11 +214,12 @@ export default function App() {
       userName={userName}
       isAdmin={isAdmin}
       alerts={alerts}
-      onBack={goHome}
+      onBack={enteredFrom === 'master' ? backToMaster : goHome}
       onSetStatus={(storeId, item, cat, status) => handleSetStatus(storeId, item, cat, status)}
       onMarkOk={handleMarkOk}
       onAddItem={(cat, name) => handleAddItem(activeStore.id, cat, name)}
       customItems={customItems[activeStore.id] || {}}
+      onSwitchStore={isAdmin ? enterStoreAsAdmin : undefined}
     />
   )
 
@@ -206,6 +230,7 @@ export default function App() {
       onMarkOk={handleMarkOk}
       consumoStats={consumoStats}
       stockCounts={stockCounts}
+      onEnterStore={enterStoreAsAdmin}
     />
   )
 

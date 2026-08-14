@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { CATEGORIES, STATUS_CFG, CRITICAL_ITEMS } from './constants'
+import { CATEGORIES, STATUS_CFG, CRITICAL_ITEMS, STORES } from './constants'
 import { fmtTime, fmtAge, getAgeColor } from './utils'
 import { C, FONT_DISPLAY, FONT_BODY } from './theme'
 import StockTab from './StockTab'
@@ -8,7 +8,7 @@ const PENDIENTES = 'pendientes'
 const STOCK = 'stock'
 const STATUS_KEYS = ['ok', 'low', 'urgent', 'out']
 
-export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, onSetStatus, onMarkOk, onAddItem, customItems }) {
+export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, onSetStatus, onMarkOk, onAddItem, customItems, onSwitchStore }) {
   const [activeCat, setActiveCat] = useState(PENDIENTES)
   const [query, setQuery] = useState('')
   const [newItemVal, setNewItemVal] = useState('')
@@ -88,13 +88,28 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <button onClick={onBack}
             style={{ background: 'none', border: 'none', color: C.textDim, fontSize: 26, cursor: 'pointer', padding: 0 }}>‹</button>
-          <div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, color: C.text, fontSize: 20 }}>{store.fullName}</div>
             <div style={{ color: C.textDim, fontSize: 12, marginTop:2 }}>
               {userName} · {new Date().toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}
               {isAdmin && <span style={{ background: C.chipBg, color:C.text, borderRadius: 4, padding: '1px 6px', marginLeft: 6, fontSize: 10, fontWeight:700 }}>ADMIN</span>}
             </div>
           </div>
+
+          {/* Cambiar de tienda sin salir — solo admin. Así puede recorrer las
+              5 tiendas seguidas sin volver a Home ni loguearse otra vez. */}
+          {isAdmin && onSwitchStore && (
+            <select
+              value={store.id}
+              onChange={e => {
+                const next = STORES.find(s => s.id === e.target.value)
+                if (next && next.id !== store.id) onSwitchStore(next)
+              }}
+              style={{ background: C.chipBg, color: C.text, border: `1px solid ${C.cardBorder}`, borderRadius: 8,
+                padding: '7px 8px', fontSize: 12, fontWeight: 700, fontFamily: FONT_BODY, flexShrink: 0 }}>
+              {STORES.map(s => <option key={s.id} value={s.id}>🏪 {s.name}</option>)}
+            </select>
+          )}
         </div>
 
         {/* Category tabs — Pendientes va primero */}

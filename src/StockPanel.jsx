@@ -70,6 +70,12 @@ export default function StockPanel({ stockCounts }) {
                 return row ? Number(row.quantity) : null
               })
 
+              // Huella de quién tocó el último número de hoy para este ítem —
+              // así el admin ve quién está reportando sin tener que entrar
+              // tienda por tienda.
+              const todayRows = itemCounts.filter(c => c.count_date === today && c.reported_at)
+              const lastRow = todayRows.sort((a, b) => new Date(b.reported_at) - new Date(a.reported_at))[0]
+
               return (
                 <div key={item} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '7px 0' }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
@@ -77,6 +83,9 @@ export default function StockPanel({ stockCounts }) {
                     <div style={{ fontSize: 10.5, color: C.textFaint, marginTop: 2 }}>
                       Hoy: {todayVals.map((v, i) => `${SHIFTS[i].label.slice(0, 3)} ${v ?? '–'}${cfg.unit}`).join(' · ')}
                     </div>
+                    {lastRow?.reported_by && (
+                      <div style={{ fontSize: 10, color: C.textFaint, marginTop: 1 }}>👤 último: {lastRow.reported_by}</div>
+                    )}
                   </div>
                   <Sparkline values={cierreByDate} color={C.ok} />
                 </div>

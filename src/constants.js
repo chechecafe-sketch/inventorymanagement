@@ -40,8 +40,9 @@ export const QUANTITY_ITEMS = {
   'Leche almendra':     { unit:'L',  label:'Litros' },
   'Leche avena':        { unit:'L',  label:'Litros' },
   'Chapatas':           { unit:'pz', label:'Piezas' },
-  'Pan masa madre':     { unit:'pz', label:'Piezas' },
-  'Pan brioche':        { unit:'pz', label:'Piezas' },
+  'Hogaza':             { unit:'rb', label:'Rebanadas' },
+  'Pan brioche':        { unit:'rb', label:'Rebanadas' },
+  'Totopos':            { unit:'pz', label:'Piezas/bolsas' },
 }
 
 // Ítems de cantidad exacta que se destacan como los más importantes a
