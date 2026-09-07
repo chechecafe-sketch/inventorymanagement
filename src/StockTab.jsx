@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { QUANTITY_ITEMS, SHIFTS, PRIORITY_ITEMS } from './constants'
+import { QUANTITY_ITEMS, SHIFTS, PRIORITY_ITEMS, ROUND_STEPS } from './constants'
 import { loadStockCounts, upsertStockCount } from './db'
 import { C, FONT_BODY } from './theme'
 
@@ -14,11 +14,14 @@ function todayStr() {
   return `${y}-${m}-${day}`
 }
 
-export default function StockTab({ store, userName }) {
+// group: 'stock' (café/leches/totopos, número libre) | 'pan' (panadería,
+// botones de número redondo para reportar de un toque — ver ROUND_STEPS).
+export default function StockTab({ store, userName, group = 'stock' }) {
   const date = useMemo(() => todayStr(), [])
   const [counts, setCounts] = useState([])
   const [loading, setLoading] = useState(true)
   const [savedFlash, setSavedFlash] = useState(null) // "item-shift" que acaba de guardarse, para el check verde
+  const [customVal, setCustomVal] = useState({}) // "item-shift" -> texto libre cuando no aplica un botón redondo
 
   useEffect(() => {
     let alive = true
@@ -60,12 +63,15 @@ export default function StockTab({ store, userName }) {
     }
   }
 
-  const items = Object.entries(QUANTITY_ITEMS)
+  const items = Object.entries(QUANTITY_ITEMS).filter(([, cfg]) => (cfg.group || 'stock') === group)
+  const isPan = group === 'pan'
 
   return (
     <div>
       <div style={{ fontSize: 12, color: C.textFaint, marginBottom: 12 }}>
-        Captura el stock de hoy en cada turno — el número se guarda solo al salir del campo.
+        {isPan
+          ? 'Toca el número más cercano por turno — el número se guarda al instante. Si no cae justo, usa "otro" para teclear el exacto.'
+          : 'Captura el stock de hoy en cada turno — el número se guarda solo al salir del campo.'}
       </div>
 
       {loading ? (
@@ -86,6 +92,12 @@ export default function StockTab({ store, userName }) {
               const hasValue = val !== ''
               const justSaved = savedFlash === key
               const reporter = getReporter(item, s.key)
+              // ¿El valor guardado cae justo en un botón redondo? si no, y hay
+              // algo capturado, lo tratamos como "otro" para no perder el dato.
+              const valNum = hasValue ? Number(val) : null
+              const matchesStep = valNum !== null && ROUND_STEPS.includes(valNum)
+              const showCustomInput = isPan && (customVal[key] !== undefined || (hasValue && !matchesStep))
+
               return (
                 <div key={s.key} style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
@@ -95,18 +107,65 @@ export default function StockTab({ store, userName }) {
                   }}>
                     {s.label}{hasValue ? ' ✓' : ''}
                   </div>
-                  <input
-                    type="number" inputMode="decimal" min="0" step="0.1"
-                    defaultValue={val}
-                    placeholder={cfg.unit}
-                    onBlur={e => handleSave(item, cfg.unit, s.key, e.target.value)}
-                    style={{
-                      width: '100%', padding: '10px 6px', borderRadius: 8,
-                      border: `1.5px solid ${justSaved ? C.ok : C.cardBorder}`,
-                      background: C.chipBg, color: C.text, fontSize: 15, fontWeight: 700, textAlign: 'center',
-                      boxSizing: 'border-box', fontFamily: FONT_BODY, transition: 'border-color 0.2s',
-                    }}
-                  />
+
+                  {isPan ? (
+                    <>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                        {ROUND_STEPS.map(n => {
+                          const active = valNum === n
+                          return (
+                            <button key={n} onClick={() => { setCustomVal(cv => { const { [key]: _drop, ...rest } = cv; return rest }); handleSave(item, cfg.unit, s.key, n) }}
+                              style={{
+                                minWidth: 30, padding: '6px 4px', borderRadius: 7, fontSize: 12, fontWeight: 800,
+                                border: `1.5px solid ${active ? C.ok : C.cardBorder}`,
+                                background: active ? C.ok : C.chipBg,
+                                color: active ? '#0d1f16' : C.textDim,
+                                cursor: 'pointer',
+                              }}>
+                              {n}
+                            </button>
+                          )
+                        })}
+                        <button onClick={() => setCustomVal(cv => ({ ...cv, [key]: hasValue ? String(val) : '' }))}
+                          style={{
+                            padding: '6px 8px', borderRadius: 7, fontSize: 11, fontWeight: 700,
+                            border: `1.5px dashed ${showCustomInput ? C.textDim : C.cardBorder}`,
+                            background: C.chipBg, color: C.textFaint, cursor: 'pointer',
+                          }}>
+                          otro…
+                        </button>
+                      </div>
+                      {showCustomInput && (
+                        <input
+                          type="number" inputMode="numeric" min="0" step="1"
+                          autoFocus
+                          defaultValue={hasValue ? val : ''}
+                          placeholder={cfg.unit}
+                          onBlur={e => { handleSave(item, cfg.unit, s.key, e.target.value); setCustomVal(cv => ({ ...cv, [key]: e.target.value })) }}
+                          style={{
+                            width: '100%', marginTop: 6, padding: '8px 6px', borderRadius: 8,
+                            border: `1.5px solid ${justSaved ? C.ok : C.cardBorder}`,
+                            background: C.chipBg, color: C.text, fontSize: 14, fontWeight: 700, textAlign: 'center',
+                            boxSizing: 'border-box', fontFamily: FONT_BODY,
+                          }}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <input
+                      type="number" inputMode="decimal" min="0" step="0.1"
+                      defaultValue={val}
+                      placeholder={cfg.unit}
+                      onBlur={e => handleSave(item, cfg.unit, s.key, e.target.value)}
+                      style={{
+                        width: '100%', padding: '10px 6px', borderRadius: 8,
+                        border: `1.5px solid ${justSaved ? C.ok : C.cardBorder}`,
+                        background: C.chipBg, color: C.text, fontSize: 15, fontWeight: 700, textAlign: 'center',
+                        boxSizing: 'border-box', fontFamily: FONT_BODY, transition: 'border-color 0.2s',
+                      }}
+                    />
+                  )}
+
                   {/* Huella de quién reportó este número — visible para que el
                       admin pueda ver quién está tocando qué sin adivinar. */}
                   {reporter && (

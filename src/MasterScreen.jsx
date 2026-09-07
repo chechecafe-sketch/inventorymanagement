@@ -2,21 +2,59 @@ import { useState, useEffect, useMemo } from 'react'
 import { STORES, ADMINS, CATEGORIES, CRITICAL_ITEMS } from './constants'
 import { haversineKm, fmtAge, fmtTime, getAgeColor, avgResupplyHours, priorityScore } from './utils'
 import { C, FONT_DISPLAY, FONT_BODY } from './theme'
+import { loadLastActivityPerStore, loadReportersToday } from './db'
 import StockPanel from './StockPanel'
+import ConsolidatedPanel from './ConsolidatedPanel'
 
 // Total de ítems que se trackean por tienda (mismo catálogo base para las 5) —
 // se usa para que la barra de salud sea proporcional de verdad, en vez de
 // saturarse con tiendas que acumulan muchas alertas.
 const TOTAL_TRACKED_ITEMS = Object.values(CATEGORIES).reduce((s, c) => s + c.items.length, 0)
 
+// Umbral de "tienda callada" — más de 12h sin ningún reporte (faltantes ni
+// stock de café/leche/pan) dispara la alerta de acta de no conformidad.
+const SILENCE_ALERT_HOURS = 12
+
+function todayStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, stockCounts, onEnterStore }) {
   const [tick, setTick] = useState(0)
   const [expandedStore, setExpandedStore] = useState(null)
+  const [lastActivity, setLastActivity] = useState({})   // { [store_id]: { at, by } }
+  const [reportersToday, setReportersToday] = useState({}) // { [store_id]: [nombres] }
 
   useEffect(() => {
     const t = setInterval(() => setTick(x => x+1), 30000)
     return () => clearInterval(t)
   }, [])
+
+  // Actividad/reportes — se refresca cada minuto para que la alerta de 12h y
+  // "quién reportó hoy" no se queden viendo datos de cuando se abrió el
+  // dashboard.
+  useEffect(() => {
+    let alive = true
+    const refresh = async () => {
+      const [act, reps] = await Promise.all([loadLastActivityPerStore(), loadReportersToday(todayStr())])
+      if (alive) { setLastActivity(act); setReportersToday(reps) }
+    }
+    refresh()
+    const t = setInterval(refresh, 60000)
+    return () => { alive = false; clearInterval(t) }
+  }, [])
+
+  // Tiendas sin ningún reporte en más de SILENCE_ALERT_HOURS — incluye a las
+  // que nunca han reportado nada (last=undefined → se tratan como "silencio
+  // total", máxima prioridad).
+  const silentStores = useMemo(() => {
+    return STORES.map(store => {
+      const last = lastActivity[store.id]
+      const hours = last ? (Date.now() - new Date(last.at).getTime()) / 3600000 : Infinity
+      return { store, hours, last }
+    }).filter(s => s.hours > SILENCE_ALERT_HOURS).sort((a, b) => b.hours - a.hours)
+  }, [lastActivity])
 
   const urgent = alerts.filter(a => a.status === 'urgent' || a.status === 'out')
   const critical = alerts.filter(a => a.isCritical)
@@ -50,6 +88,25 @@ export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, s
       </div>
 
       <div style={{ padding:14 }}>
+        {/* Alerta de tiendas calladas — más de 12h sin ningún reporte de
+            faltantes ni de stock (leche/café/pan). Cuenta como advertencia
+            formal previa a levantar acta de no conformidad. */}
+        {silentStores.length > 0 && (
+          <div style={{ background:'rgba(248,113,113,0.1)', border:`1.5px solid ${C.out}`, borderRadius:14, padding:'14px 16px', marginBottom:16 }}>
+            <div style={{ fontWeight:800, fontSize:14, color:C.out, fontFamily:FONT_DISPLAY, marginBottom:8 }}>
+              🚨 Tiendas sin reportar (+{SILENCE_ALERT_HOURS}h)
+            </div>
+            {silentStores.map(({ store, hours, last }) => (
+              <div key={store.id} style={{ fontSize:12.5, color:C.text, padding:'5px 0', borderTop:`0.5px solid rgba(248,113,113,0.25)` }}>
+                <b>{store.fullName}</b> {isFinite(hours)
+                  ? <>no reporta nada desde hace <b>{fmtAge(last.at)}</b> (último: {last.by || '—'})</>
+                  : <>no tiene ningún reporte registrado</>}
+                {' '}— se podrá levantar <b>acta de no conformidad</b> si no se regulariza.
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* KPIs */}
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:16 }}>
           {[
@@ -89,6 +146,11 @@ export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, s
                   <div>
                     <div style={{ fontWeight:700, fontSize:15, color:C.text, fontFamily:FONT_DISPLAY }}>{store.fullName}</div>
                     {oldest && <div style={{ fontSize:11, color:getAgeColor(oldest), fontWeight:600, marginTop:2 }}>⏱ alerta más vieja: {fmtAge(oldest)}</div>}
+                    <div style={{ fontSize:11, color:C.textFaint, marginTop:2 }}>
+                      {(reportersToday[store.id] || []).length > 0
+                        ? <>👥 hoy reportaron: {reportersToday[store.id].join(', ')}</>
+                        : <span style={{ color:C.urgent, fontWeight:600 }}>👥 nadie ha reportado hoy</span>}
+                    </div>
                   </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:9 }}>
@@ -182,6 +244,8 @@ export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, s
             </div>
           )}
         </div>
+
+        <ConsolidatedPanel alerts={alerts.filter(a => a.status !== 'ok')} consumoStats={consumoStats} stockCounts={stockCounts || []} />
 
         <StockPanel stockCounts={stockCounts || []} />
 

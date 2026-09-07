@@ -29,25 +29,35 @@ export const CRITICAL_ITEMS = [
 ]
 
 // ── Ítems de cantidad exacta ─────────────────────────────────────────────
-// Leche (litros), café (kilos) y pan (piezas): en vez de OK/Poco/Urgente/
-// Agotado, el personal captura el número exacto 3 veces al día (ver SHIFTS).
-// Café va primero en el objeto a propósito: es el ítem prioritario dentro
-// de este grupo (ver PRIORITY_ITEMS) y así aparece primero en la lista.
+// Leche (litros), café (kilos), pan (piezas/rebanadas) y totopos: en vez de
+// OK/Poco/Urgente/Agotado, el personal captura el número exacto 3 veces al
+// día (ver SHIFTS). Café va primero en el objeto a propósito: es el ítem
+// prioritario dentro de este grupo (ver PRIORITY_ITEMS) y así aparece
+// primero en la lista.
+// `group` separa estos ítems en dos pestañas dentro de la tienda (ver
+// StoreScreen/StockTab): 'stock' = café/leches/totopos (pestaña 📦 Stock),
+// 'pan' = panadería (pestaña 🥖 Pan, con botones de números redondos para
+// reportar más rápido — ver ROUND_STEPS).
 export const QUANTITY_ITEMS = {
-  'Café en grano':      { unit:'kg', label:'Kilos' },
-  'Leche entera':       { unit:'L',  label:'Litros' },
-  'Leche deslactosada': { unit:'L',  label:'Litros' },
-  'Leche almendra':     { unit:'L',  label:'Litros' },
-  'Leche avena':        { unit:'L',  label:'Litros' },
-  'Chapatas':           { unit:'pz', label:'Piezas' },
-  'Hogaza':             { unit:'rb', label:'Rebanadas' },
-  'Pan brioche':        { unit:'rb', label:'Rebanadas' },
-  'Totopos':            { unit:'pz', label:'Piezas/bolsas' },
+  'Café en grano':      { unit:'kg', label:'Kilos',           group:'stock' },
+  'Leche entera':       { unit:'L',  label:'Litros',          group:'stock' },
+  'Leche deslactosada': { unit:'L',  label:'Litros',          group:'stock' },
+  'Leche almendra':     { unit:'L',  label:'Litros',          group:'stock' },
+  'Leche avena':        { unit:'L',  label:'Litros',          group:'stock' },
+  'Totopos':            { unit:'pz', label:'Piezas/bolsas',   group:'stock' },
+  'Chapatas':           { unit:'pz', label:'Piezas',          group:'pan' },
+  'Hogaza':             { unit:'rb', label:'Rebanadas',       group:'pan' },
+  'Pan brioche':        { unit:'rb', label:'Rebanadas',       group:'pan' },
+  'Pan dulce':          { unit:'pz', label:'Piezas',          group:'pan' },
 }
 
 // Ítems de cantidad exacta que se destacan como los más importantes a
 // vigilar (aparecen primero + etiqueta ★ PRIORITARIO en la pestaña Stock).
 export const PRIORITY_ITEMS = ['Café en grano']
+
+// Botones de número redondo para reportar pan más rápido (tocar en vez de
+// teclear) — cubren los rangos típicos de piezas/rebanadas por turno.
+export const ROUND_STEPS = [0, 5, 10, 15, 20, 25, 30, 40, 50, 75, 100]
 
 export const SHIFTS = [
   { key:'apertura', label:'Apertura' },

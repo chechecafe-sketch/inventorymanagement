@@ -34,32 +34,34 @@ function Sparkline({ values, color }) {
   )
 }
 
-export default function StockPanel({ stockCounts }) {
+// group: 'stock' (café/leches/totopos) | 'pan' (panadería) — mismo dato,
+// solo filtra qué ítems de QUANTITY_ITEMS se muestran en esta tarjeta.
+function StockGroupCard({ stockCounts, group, title, subtitle }) {
   const dates = useMemo(() => last7Dates(), [])
   const today = dates[dates.length - 1]
-
-  const hasAnyData = stockCounts.length > 0
+  const groupItems = Object.entries(QUANTITY_ITEMS).filter(([, cfg]) => (cfg.group || 'stock') === group)
+  const hasAnyData = stockCounts.some(c => groupItems.some(([item]) => item === c.item))
 
   return (
     <div style={{ background: C.card, borderRadius: 16, padding: '16px', border: `1.5px solid ${C.cardBorderHi}`, marginTop: 14 }}>
       <div style={{ marginBottom: 12 }}>
-        <div style={{ fontWeight: 800, fontSize: 16, color: C.text, fontFamily: FONT_DISPLAY }}>📦 Stock — leche, café y pan</div>
-        <div style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>Hoy por turno, y tendencia de cierre en los últimos 7 días</div>
+        <div style={{ fontWeight: 800, fontSize: 16, color: C.text, fontFamily: FONT_DISPLAY }}>{title}</div>
+        <div style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>{subtitle}</div>
       </div>
 
       {!hasAnyData ? (
         <div style={{ color: C.textFaint, fontSize: 13, fontStyle: 'italic', borderTop: `1px solid ${C.divider}`, paddingTop: 12 }}>
-          Aún no hay capturas de stock esta semana.
+          Aún no hay capturas esta semana.
         </div>
       ) : STORES.map(store => {
         const storeCounts = stockCounts.filter(c => c.store_id === store.id)
-        if (!storeCounts.length) return null
+        const rows = groupItems.filter(([item]) => storeCounts.some(c => c.item === item))
+        if (!rows.length) return null
         return (
           <div key={store.id} style={{ borderTop: `1px solid ${C.divider}`, paddingTop: 10, marginTop: 10 }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 8, fontFamily: FONT_DISPLAY }}>{store.fullName}</div>
-            {Object.entries(QUANTITY_ITEMS).map(([item, cfg]) => {
+            {rows.map(([item, cfg]) => {
               const itemCounts = storeCounts.filter(c => c.item === item)
-              if (!itemCounts.length) return null
 
               const cierreByDate = dates.map(d => {
                 const row = itemCounts.find(c => c.count_date === d && c.shift === 'cierre')
@@ -95,5 +97,18 @@ export default function StockPanel({ stockCounts }) {
         )
       })}
     </div>
+  )
+}
+
+export default function StockPanel({ stockCounts }) {
+  return (
+    <>
+      <StockGroupCard stockCounts={stockCounts || []} group="stock"
+        title="📦 Stock — leche, café y totopos"
+        subtitle="Hoy por turno, y tendencia de cierre en los últimos 7 días" />
+      <StockGroupCard stockCounts={stockCounts || []} group="pan"
+        title="🥖 Pan"
+        subtitle="Hoy por turno, y tendencia de cierre en los últimos 7 días" />
+    </>
   )
 }

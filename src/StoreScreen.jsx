@@ -6,6 +6,7 @@ import StockTab from './StockTab'
 
 const PENDIENTES = 'pendientes'
 const STOCK = 'stock'
+const PAN = 'pan'
 const STATUS_KEYS = ['ok', 'low', 'urgent', 'out']
 
 export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, onSetStatus, onMarkOk, onAddItem, customItems, onSwitchStore }) {
@@ -41,7 +42,7 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
   // solo la posición no se mueve. Para refrescar el orden, vuelve a tocar la
   // misma pestaña.
   const buildOrder = useCallback((cat) => {
-    if (cat === STOCK) return [] // el tab de Stock tiene su propia UI, no usa esta lista
+    if (cat === STOCK || cat === PAN) return [] // Stock y Pan tienen su propia UI, no usan esta lista
     if (cat === PENDIENTES) {
       return storeAlerts
         .slice()
@@ -134,6 +135,13 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
               cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontFamily:FONT_BODY }}>
             📦 Stock
           </button>
+          <button onClick={() => selectCat(PAN)}
+            style={{ background: activeCat === PAN ? C.text : C.chipBg,
+              color: activeCat === PAN ? '#000' : C.textDim,
+              border: 'none', borderRadius: 20, padding: '7px 13px', fontSize: 12, fontWeight: 800,
+              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontFamily:FONT_BODY }}>
+            🥖 Pan
+          </button>
           {Object.entries(CATEGORIES).map(([key, cat]) => {
             const catAlerts = storeAlerts.filter(a => a.category === key)
             return (
@@ -157,7 +165,9 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
 
       <div style={{ padding: '14px 14px' }}>
         {activeCat === STOCK ? (
-          <StockTab store={store} userName={userName} />
+          <StockTab store={store} userName={userName} group="stock" />
+        ) : activeCat === PAN ? (
+          <StockTab store={store} userName={userName} group="pan" />
         ) : (
         <>
         {/* Buscador */}
@@ -262,8 +272,8 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
         )}
       </div>
 
-      {/* Status legend — no aplica en el tab de Stock (usa números, no estados) */}
-      {activeCat !== STOCK && (
+      {/* Status legend — no aplica en Stock/Pan (usan números, no estados) */}
+      {activeCat !== STOCK && activeCat !== PAN && (
         <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: C.bgHeader,
           borderTop: `1px solid ${C.divider}`, padding: '11px 16px', display: 'flex', gap: 16, justifyContent: 'center' }}>
           {Object.entries(STATUS_CFG).map(([k, v]) => (

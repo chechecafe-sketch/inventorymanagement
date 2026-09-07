@@ -180,6 +180,59 @@ export async function upsertStockCount({ storeId, item, unit, shift, quantity, r
   return !error
 }
 
+// ── ÚLTIMA ACTIVIDAD POR TIENDA ──────────────────────────────────────────────
+// Para detectar tiendas "calladas" (ver alerta de 12h en MasterScreen) y para
+// mostrar quién sí ha reportado hoy. Combina el último toque en `faltantes`
+// (cualquier status, no solo agotado/urgente — updated_at se mueve incluso al
+// marcar "Surtido") con la última captura en `stock_counts` (leche/café/pan).
+// Con solo 5 tiendas, es más simple traer los últimos N movimientos ya
+// ordenados y reducir "el más reciente por tienda" aquí mismo que armar una
+// vista/RPC en Supabase.
+export async function loadLastActivityPerStore() {
+  const [{ data: faltRows, error: e1 }, { data: stockRows, error: e2 }] = await Promise.all([
+    supabase.from('faltantes').select('store_id, updated_at, reported_by').order('updated_at', { ascending: false }).limit(500),
+    supabase.from('stock_counts').select('store_id, reported_at, reported_by').order('reported_at', { ascending: false }).limit(500),
+  ])
+  if (e1) console.error(e1)
+  if (e2) console.error(e2)
+
+  const last = {} // { [store_id]: { at, by } }
+  const consider = (storeId, at, by) => {
+    if (!storeId || !at) return
+    if (!last[storeId] || new Date(at) > new Date(last[storeId].at)) last[storeId] = { at, by: by || null }
+  }
+  ;(faltRows || []).forEach(r => consider(r.store_id, r.updated_at, r.reported_by))
+  ;(stockRows || []).forEach(r => consider(r.store_id, r.reported_at, r.reported_by))
+  return last
+}
+
+// ── QUIÉN HA REPORTADO HOY, POR TIENDA ───────────────────────────────────────
+// Junta nombres únicos de faltantes_log (cambios de estado) + stock_counts de
+// la fecha dada, agrupados por tienda. Sirve para ver de un vistazo si alguien
+// del turno ya usó la app hoy, sin tener que entrar tienda por tienda.
+export async function loadReportersToday(countDate) {
+  const dayStart = `${countDate}T00:00:00`
+  const [{ data: logRows, error: e1 }, { data: stockRows, error: e2 }] = await Promise.all([
+    supabase.from('faltantes_log').select('store_id, changed_by, changed_at').gte('changed_at', dayStart),
+    supabase.from('stock_counts').select('store_id, reported_by').eq('count_date', countDate),
+  ])
+  if (e1) console.error(e1)
+  if (e2) console.error(e2)
+
+  const byStore = {} // { [store_id]: Set(nombres) }
+  const add = (storeId, name) => {
+    if (!storeId || !name) return
+    if (!byStore[storeId]) byStore[storeId] = new Set()
+    byStore[storeId].add(name)
+  }
+  ;(logRows || []).forEach(r => add(r.store_id, r.changed_by))
+  ;(stockRows || []).forEach(r => add(r.store_id, r.reported_by))
+
+  const out = {}
+  Object.entries(byStore).forEach(([storeId, set]) => { out[storeId] = [...set] })
+  return out
+}
+
 // ── SUBSCRIBE to real-time alerts ────────────────────────────────────────────
 export function subscribeAlerts(callback) {
   return supabase
