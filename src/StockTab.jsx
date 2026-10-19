@@ -39,6 +39,19 @@ export default function StockTab({ store, userName, group = 'stock' }) {
 
   // Huella de quién tocó el número — para que quede claro quién reportó
   // cada captura, no solo qué valor quedó.
+  // Consumo desde el turno anterior capturado (apertura → medio → cierre).
+  // Negativo = bajó el stock (consumo); positivo = hubo reposición.
+  const getDelta = (item, shiftKey) => {
+    const idx = SHIFTS.findIndex(x => x.key === shiftKey)
+    const cur = getValue(item, shiftKey)
+    if (cur === '' || idx <= 0) return null
+    for (let i = idx - 1; i >= 0; i--) {
+      const prev = getValue(item, SHIFTS[i].key)
+      if (prev !== '') return Number(cur) - Number(prev)
+    }
+    return null
+  }
+
   const getReporter = (item, shift) => {
     const row = counts.find(c => c.item === item && c.shift === shift)
     return row?.reported_by || null
@@ -48,6 +61,17 @@ export default function StockTab({ store, userName, group = 'stock' }) {
     if (rawValue === '' || rawValue === null || rawValue === undefined) return
     const quantity = Number(rawValue)
     if (Number.isNaN(quantity) || quantity < 0) return
+
+    // Validación de plausibilidad: evita capturas con la unidad equivocada
+    // (ej. gramos tecleados donde se esperaban kilos) y números disparados.
+    const cfg = QUANTITY_ITEMS[item]
+    if (cfg?.max && quantity > cfg.max) {
+      const okGo = window.confirm(`${quantity} ${cfg.unit} de ${item} es muy alto (lo normal es hasta ${cfg.max} ${cfg.unit}). ¿Está bien el número?`)
+      if (!okGo) return
+    } else if (cfg?.warnBelow && quantity > 0 && quantity < cfg.warnBelow) {
+      const okGo = window.confirm(`${quantity} ${cfg.unit} de ${item} es muy poco. ¿Seguro? Aquí se captura en ${cfg.label.toLowerCase()}.`)
+      if (!okGo) return
+    }
 
     setCounts(prev => {
       const exists = prev.find(c => c.item === item && c.shift === shift)
@@ -107,6 +131,11 @@ export default function StockTab({ store, userName, group = 'stock' }) {
                   }}>
                     {s.label}{hasValue ? ' ✓' : ''}
                   </div>
+                  {hasValue && cfg.min != null && Number(val) <= cfg.min && (
+                    <div style={{ fontSize: 9, fontWeight: 800, color: Number(val) === 0 ? C.critTxt : '#e9a23b', marginBottom: 3 }}>
+                      {Number(val) === 0 ? '⛔ AGOTADO' : '⚠ BAJO MÍNIMO'}
+                    </div>
+                  )}
 
                   {isPan ? (
                     <>
@@ -153,7 +182,7 @@ export default function StockTab({ store, userName, group = 'stock' }) {
                     </>
                   ) : (
                     <input
-                      type="number" inputMode="decimal" min="0" step="0.1"
+                      type="number" inputMode="decimal" min="0" step={cfg.step || 0.1}
                       defaultValue={val}
                       placeholder={cfg.unit}
                       onBlur={e => handleSave(item, cfg.unit, s.key, e.target.value)}
@@ -165,6 +194,16 @@ export default function StockTab({ store, userName, group = 'stock' }) {
                       }}
                     />
                   )}
+
+                  {(() => {
+                    const d = getDelta(item, s.key)
+                    if (d === null || d === 0) return null
+                    return (
+                      <div style={{ fontSize: 10, color: d < 0 ? C.textFaint : C.ok, marginTop: 3, textAlign: 'center' }}>
+                        {d > 0 ? '+' : ''}{Math.round(d * 10) / 10} {cfg.unit} vs turno anterior
+                      </div>
+                    )
+                  })()}
 
                   {/* Huella de quién reportó este número — visible para que el
                       admin pueda ver quién está tocando qué sin adivinar. */}
