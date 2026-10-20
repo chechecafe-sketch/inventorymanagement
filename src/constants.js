@@ -38,17 +38,22 @@ export const CRITICAL_ITEMS = [
 // StoreScreen/StockTab): 'stock' = café/leches/totopos (pestaña 📦 Stock),
 // 'pan' = panadería (pestaña 🥖 Pan, con botones de números redondos para
 // reportar más rápido — ver ROUND_STEPS).
+// Cada ítem define: unidad base fija (`unit`, nadie la escribe a mano),
+// `max` = tope plausible (arriba de esto se pide confirmar la captura),
+// `min` = nivel bajo (debajo de esto el estado "bajo mínimo" se calcula solo),
+// `step` = paso de los controles de captura. Los topes salen del p95 del
+// histórico (sep-2026); ajusta `min` por ítem cuando haya consumo real.
 export const QUANTITY_ITEMS = {
-  'Café en grano':      { unit:'kg', label:'Kilos',           group:'stock' },
-  'Leche entera':       { unit:'L',  label:'Litros',          group:'stock' },
-  'Leche deslactosada': { unit:'L',  label:'Litros',          group:'stock' },
-  'Leche almendra':     { unit:'L',  label:'Litros',          group:'stock' },
-  'Leche avena':        { unit:'L',  label:'Litros',          group:'stock' },
-  'Totopos':            { unit:'pz', label:'Piezas/bolsas',   group:'stock' },
-  'Chapatas':           { unit:'pz', label:'Piezas',          group:'pan' },
-  'Hogaza':             { unit:'rb', label:'Rebanadas',       group:'pan' },
-  'Pan brioche':        { unit:'rb', label:'Rebanadas',       group:'pan' },
-  'Pan dulce':          { unit:'pz', label:'Piezas',          group:'pan' },
+  'Café en grano':      { unit:'g',  label:'Gramos',          group:'stock', max:15000, min:2000, step:100, warnBelow:50 },
+  'Leche entera':       { unit:'L',  label:'Litros',          group:'stock', max:40,    min:5,    step:1 },
+  'Leche deslactosada': { unit:'L',  label:'Litros',          group:'stock', max:45,    min:6,    step:1 },
+  'Leche almendra':     { unit:'L',  label:'Litros',          group:'stock', max:20,    min:3,    step:1 },
+  'Leche avena':        { unit:'L',  label:'Litros',          group:'stock', max:15,    min:2,    step:1 },
+  'Totopos':            { unit:'pz', label:'Piezas/bolsas',   group:'stock', max:10,    min:2,    step:1 },
+  'Chapatas':           { unit:'pz', label:'Piezas',          group:'pan',   max:40,    min:6,    step:1 },
+  'Hogaza':             { unit:'rb', label:'Rebanadas',       group:'pan',   max:60,    min:10,   step:1 },
+  'Pan brioche':        { unit:'rb', label:'Rebanadas',       group:'pan',   max:80,    min:10,   step:1 },
+  'Pan dulce':          { unit:'pz', label:'Piezas',          group:'pan',   max:40,    min:5,    step:1 },
 }
 
 // Ítems de cantidad exacta que se destacan como los más importantes a
