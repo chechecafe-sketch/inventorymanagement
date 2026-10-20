@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { STORES, CATEGORIES, CRITICAL_ITEMS } from './constants'
+import { STORES, ALL_LOCATIONS, CATEGORIES, CRITICAL_ITEMS } from './constants'
 import { loadAllAlerts, upsertFaltante, loadConsumoStats, loadCustomItems, addCustomItem as dbAddCustomItem, subscribeAlerts, loadStockCountsSince } from './db'
 import HomeScreen   from './HomeScreen'
 import LoginScreen  from './LoginScreen'
@@ -11,7 +11,7 @@ function enrichAlerts(raw) {
   return raw.map(a => ({
     ...a,
     isCritical: CRITICAL_ITEMS.includes(a.item) || a.category === 'servicios',
-    storeName:  STORES.find(s => s.id === a.store_id)?.name || a.store_id,
+    storeName:  ALL_LOCATIONS.find(s => s.id === a.store_id)?.name || a.store_id,
   }))
 }
 
@@ -23,7 +23,7 @@ function parseRoute() {
   const path = window.location.pathname
   const storeMatch = path.match(/^\/t\/([a-z]+)\/?$/)
   if (storeMatch) {
-    const store = STORES.find(s => s.id === storeMatch[1])
+    const store = ALL_LOCATIONS.find(s => s.id === storeMatch[1])
     if (store) return { view: 'login', store }
   }
   if (/^\/admin\/?$/.test(path)) return { view: 'login-master', store: null }
@@ -90,7 +90,7 @@ export default function App() {
   // ── Load consumption stats for master ─────────────────────────────────────
   const loadAllConsumo = useCallback(async () => {
     const results = {}
-    for (const store of STORES) {
+    for (const store of ALL_LOCATIONS) {
       results[store.id] = await loadConsumoStats(store.id)
     }
     setConsumoStats(results)
@@ -114,7 +114,7 @@ export default function App() {
       if (exists) return prev.map(a => a.store_id===storeId&&a.item===item ? {...a, status:next, reported_by:userName, reported_at:new Date().toISOString()} : a)
       return [...prev, { store_id:storeId, item, category, status:next, reported_by:userName, reported_at:new Date().toISOString(),
         isCritical:CRITICAL_ITEMS.includes(item)||category==='servicios',
-        storeName: STORES.find(s=>s.id===storeId)?.name||storeId }]
+        storeName: ALL_LOCATIONS.find(s=>s.id===storeId)?.name||storeId }]
     })
     await upsertFaltante({ storeId, category, item, status:next, reportedBy:userName })
   }, [userName])

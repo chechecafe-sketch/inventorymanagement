@@ -6,6 +6,18 @@ export const STORES = [
   { id:'studio',name:'Studio', fullName:'Cheché Studio',         address:'Av. Cuauhtémoc 1233',          priority:5, lat:19.3734283, lng:-99.1607971, color:'#5f4a7c' },
 ]
 
+// Cocina Central: no es una tienda de venta, es el centro de producción y abasto.
+// Va aparte de STORES a propósito — así no entra en rutas, alerta de silencio ni
+// stock/pan por tienda. Reporta sus propios faltantes (mismo catálogo y estados).
+export const CENTRAL_KITCHEN = {
+  id:'cocina', name:'Cocina Central', fullName:'Cocina Central', address:'Producción y abasto',
+  priority:0, color:'#b45f3c', isCentral:true,
+}
+
+// Todas las ubicaciones que pueden reportar (tiendas + cocina central) — úsalo
+// para buscar por id; usa STORES solo cuando sea exclusivo de las tiendas.
+export const ALL_LOCATIONS = [...STORES, CENTRAL_KITCHEN]
+
 export const ADMINS = ['Victoria','Fernanda','Luis']
 
 // Nota: café en grano, las leches y los panes se quitaron de aquí — ya no se
