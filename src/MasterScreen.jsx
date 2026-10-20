@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
-import { STORES, ADMINS, CATEGORIES, CRITICAL_ITEMS } from './constants'
+import { Fragment, useState, useEffect, useMemo } from 'react'
+import { STORES, ALL_LOCATIONS, ADMINS, CATEGORIES, CRITICAL_ITEMS } from './constants'
 import { haversineKm, fmtAge, fmtTime, getAgeColor, avgResupplyHours, priorityScore } from './utils'
 import { C, FONT_DISPLAY, FONT_BODY } from './theme'
 import { loadLastActivityPerStore, loadReportersToday } from './db'
@@ -124,7 +124,7 @@ export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, s
 
         {/* Per-store */}
         <div style={{ fontWeight:700, fontSize:14, marginBottom:10, color:C.text, fontFamily:FONT_DISPLAY, textTransform:'uppercase', letterSpacing:0.5 }}>Estado por tienda</div>
-        {STORES.map(store => {
+        {ALL_LOCATIONS.map(store => {
           const sa = urgent.filter(a => a.store_id === store.id)
           const cr = sa.filter(a => a.isCritical).length
           // % de ítems trackeados que SÍ están bien (proporcional al catálogo real,
@@ -135,13 +135,17 @@ export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, s
           const isExpanded = expandedStore === store.id
 
           return (
-            <div key={store.id} style={{ background:C.card, borderRadius:14, padding:'14px 16px', marginBottom:10, border:`1.5px solid ${cr>0?C.out:C.cardBorder}` }}>
+            <Fragment key={store.id}>
+            {store.isCentral && (
+              <div style={{ fontWeight:700, fontSize:14, margin:'22px 0 10px', color:C.text, fontFamily:FONT_DISPLAY, textTransform:'uppercase', letterSpacing:0.5 }}>Cocina central</div>
+            )}
+            <div style={{ background:C.card, borderRadius:14, padding:'14px 16px', marginBottom:10, border:`1.5px solid ${cr>0?C.out:C.cardBorder}` }}>
               <div onClick={() => setExpandedStore(isExpanded ? null : store.id)}
                 style={{ display:'flex', justifyContent:'space-between', alignItems:'center', cursor:'pointer' }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                   <div style={{ width:32, height:32, borderRadius:8, background:store.color,
                     display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:800, fontSize:12, fontFamily:FONT_DISPLAY }}>
-                    P{store.priority}
+                    {store.isCentral ? '🍳' : `P${store.priority}`}
                   </div>
                   <div>
                     <div style={{ fontWeight:700, fontSize:15, color:C.text, fontFamily:FONT_DISPLAY }}>{store.fullName}</div>
@@ -204,6 +208,7 @@ export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, s
                 </div>
               ))}
             </div>
+            </Fragment>
           )
         })}
 

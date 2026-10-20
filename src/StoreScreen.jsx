@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { CATEGORIES, STATUS_CFG, CRITICAL_ITEMS, STORES } from './constants'
+import { CATEGORIES, STATUS_CFG, CRITICAL_ITEMS, ALL_LOCATIONS } from './constants'
 import { fmtTime, fmtAge, getAgeColor } from './utils'
 import { C, FONT_DISPLAY, FONT_BODY } from './theme'
 import StockTab from './StockTab'
@@ -103,12 +103,12 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
             <select
               value={store.id}
               onChange={e => {
-                const next = STORES.find(s => s.id === e.target.value)
+                const next = ALL_LOCATIONS.find(s => s.id === e.target.value)
                 if (next && next.id !== store.id) onSwitchStore(next)
               }}
               style={{ background: C.chipBg, color: C.text, border: `1px solid ${C.cardBorder}`, borderRadius: 8,
                 padding: '7px 8px', fontSize: 12, fontWeight: 700, fontFamily: FONT_BODY, flexShrink: 0 }}>
-              {STORES.map(s => <option key={s.id} value={s.id}>🏪 {s.name}</option>)}
+              {ALL_LOCATIONS.map(s => <option key={s.id} value={s.id}>{s.isCentral ? '🍳' : '🏪'} {s.name}</option>)}
             </select>
           )}
         </div>
@@ -128,6 +128,7 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
               </span>
             )}
           </button>
+          {!store.isCentral && (<>
           <button onClick={() => selectCat(STOCK)}
             style={{ background: activeCat === STOCK ? C.text : C.chipBg,
               color: activeCat === STOCK ? '#000' : C.textDim,
@@ -142,6 +143,7 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
               cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontFamily:FONT_BODY }}>
             🥖 Pan
           </button>
+          </>)}
           {Object.entries(CATEGORIES).map(([key, cat]) => {
             const catAlerts = storeAlerts.filter(a => a.category === key)
             return (
