@@ -1,12 +1,15 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { CATEGORIES, STATUS_CFG, CRITICAL_ITEMS, ALL_LOCATIONS } from './constants'
+import { CATEGORIES, STATUS_CFG, CRITICAL_ITEMS, ALL_LOCATIONS, READY_ITEMS, categoriesFor } from './constants'
+import { loadCocinaListo } from './db'
 import { fmtTime, fmtAge, getAgeColor } from './utils'
 import { C, FONT_DISPLAY, FONT_BODY } from './theme'
 import StockTab from './StockTab'
+import ListoTab from './ListoTab'
 
 const PENDIENTES = 'pendientes'
 const STOCK = 'stock'
 const PAN = 'pan'
+const LISTO = 'listo'
 const STATUS_KEYS = ['ok', 'low', 'urgent', 'out']
 
 export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, onSetStatus, onMarkOk, onAddItem, customItems, onSwitchStore }) {
@@ -20,6 +23,23 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
     const t = setInterval(() => setTick(x => x + 1), 60000)
     return () => clearInterval(t)
   }, [])
+
+  // Lo que Cocina Central ya tiene listo — las tiendas lo ven al solicitar un
+  // semiterminado, para pedir lo justo y no acumular de más.
+  const [cocinaListo, setCocinaListo] = useState({})
+  useEffect(() => {
+    if (store.isCentral) return
+    let alive = true
+    const load = () => loadCocinaListo().then(data => {
+      if (!alive) return
+      const m = {}; data.forEach(r => { m[r.item] = r }); setCocinaListo(m)
+    })
+    load()
+    const t = setInterval(load, 60000)
+    return () => { alive = false; clearInterval(t) }
+  }, [store.id, store.isCentral])
+
+  const visibleCats = useMemo(() => categoriesFor(store), [store])
 
   const storeAlerts = useMemo(() => alerts.filter(a => a.store_id === store.id), [alerts, store.id])
 
@@ -42,7 +62,7 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
   // solo la posición no se mueve. Para refrescar el orden, vuelve a tocar la
   // misma pestaña.
   const buildOrder = useCallback((cat) => {
-    if (cat === STOCK || cat === PAN) return [] // Stock y Pan tienen su propia UI, no usan esta lista
+    if (cat === STOCK || cat === PAN || cat === LISTO) return [] // Stock y Pan tienen su propia UI, no usan esta lista
     if (cat === PENDIENTES) {
       return storeAlerts
         .slice()
@@ -59,6 +79,15 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
       .sort((a, b) => (STATUS_CFG[getStatus(b.item)]?.weight || 0) - (STATUS_CFG[getStatus(a.item)]?.weight || 0))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeAlerts, customItems])
+
+  // Al cambiar de ubicación (admin), si la pestaña activa no existe ahí, volver a Pendientes
+  useEffect(() => {
+    const valid = activeCat === PENDIENTES
+      || (store.isCentral ? activeCat === LISTO : (activeCat === STOCK || activeCat === PAN))
+      || visibleCats.some(([k]) => k === activeCat)
+    if (!valid) setActiveCat(PENDIENTES)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.id])
 
   const [order, setOrder] = useState(() => buildOrder(PENDIENTES))
   const customCount = (customItems[activeCat] || []).length
@@ -128,6 +157,15 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
               </span>
             )}
           </button>
+          {store.isCentral && (
+          <button onClick={() => selectCat(LISTO)}
+            style={{ background: activeCat === LISTO ? C.text : C.chipBg,
+              color: activeCat === LISTO ? '#000' : C.textDim,
+              border: 'none', borderRadius: 20, padding: '7px 13px', fontSize: 12, fontWeight: 800,
+              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontFamily:FONT_BODY }}>
+            ✅ Listo para entregar
+          </button>
+          )}
           {!store.isCentral && (<>
           <button onClick={() => selectCat(STOCK)}
             style={{ background: activeCat === STOCK ? C.text : C.chipBg,
@@ -144,7 +182,7 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
             🥖 Pan
           </button>
           </>)}
-          {Object.entries(CATEGORIES).map(([key, cat]) => {
+          {visibleCats.map(([key, cat]) => {
             const catAlerts = storeAlerts.filter(a => a.category === key)
             return (
               <button key={key} onClick={() => selectCat(key)}
@@ -166,7 +204,9 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
       </div>
 
       <div style={{ padding: '14px 14px' }}>
-        {activeCat === STOCK ? (
+        {activeCat === LISTO ? (
+          <ListoTab userName={userName} />
+        ) : activeCat === STOCK ? (
           <StockTab store={store} userName={userName} group="stock" />
         ) : activeCat === PAN ? (
           <StockTab store={store} userName={userName} group="pan" />
@@ -207,6 +247,17 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
                     {isCrit && <span style={{ fontSize: 9, background: C.critBg, color: C.critTxt, borderRadius: 4, padding: '2px 6px', fontWeight: 800, letterSpacing: 0.3 }}>★ CRÍTICO</span>}
                     <span style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{item}</span>
                   </div>
+
+                  {!store.isCentral && READY_ITEMS[item] && (() => {
+                    const r = cocinaListo[item]
+                    const q = r ? Number(r.quantity) : null
+                    return (
+                      <div style={{ marginTop: 4, fontSize: 11, fontWeight: 700, color: q === null ? C.textFaint : q > 0 ? C.ok : C.urgent }}>
+                        🍳 Cocina tiene: {q === null ? 'sin reporte' : `${q} ${r.unit}`}
+                        {r && <span style={{ fontWeight: 500, color: C.textFaint }}> · hace {fmtAge(r.reported_at)}</span>}
+                      </div>
+                    )
+                  })()}
 
                   {alert && (
                     <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 9 }}>
@@ -275,7 +326,7 @@ export default function StoreScreen({ store, userName, isAdmin, alerts, onBack, 
       </div>
 
       {/* Status legend — no aplica en Stock/Pan (usan números, no estados) */}
-      {activeCat !== STOCK && activeCat !== PAN && (
+      {activeCat !== STOCK && activeCat !== PAN && activeCat !== LISTO && (
         <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: C.bgHeader,
           borderTop: `1px solid ${C.divider}`, padding: '11px 16px', display: 'flex', gap: 16, justifyContent: 'center' }}>
           {Object.entries(STATUS_CFG).map(([k, v]) => (

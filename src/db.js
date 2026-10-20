@@ -180,6 +180,22 @@ export async function upsertStockCount({ storeId, item, unit, shift, quantity, r
   return !error
 }
 
+// ── COCINA CENTRAL: stock listo para entregar ───────────────────────────────
+// Una fila por ítem (lo más reciente que reportó la cocina).
+export async function loadCocinaListo() {
+  const { data, error } = await supabase.from('cocina_listo').select('*')
+  if (error) console.error(error)
+  return data || []
+}
+
+export async function upsertCocinaListo({ item, unit, quantity, reportedBy }) {
+  const { error } = await supabase.from('cocina_listo').upsert({
+    item, unit, quantity, reported_by: reportedBy, reported_at: new Date().toISOString(),
+  }, { onConflict: 'item' })
+  if (error) console.error(error)
+  return !error
+}
+
 // ── ÚLTIMA ACTIVIDAD POR TIENDA ──────────────────────────────────────────────
 // Para detectar tiendas "calladas" (ver alerta de 12h en MasterScreen) y para
 // mostrar quién sí ha reportado hoy. Combina el último toque en `faltantes`
