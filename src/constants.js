@@ -24,13 +24,43 @@ export const ADMINS = ['Victoria','Fernanda','Luis']
 // reportan con los 4 botones de estado, se capturan como cantidad exacta
 // (ver QUANTITY_ITEMS) 3 veces al día. Yogurt griego y carnitas se eliminaron
 // del catálogo a petición del usuario.
+// `scope`: 'stores' = solo las tiendas lo piden; 'central' = solo Cocina Central
+// lo reporta; sin scope = lo ven todos.
 export const CATEGORIES = {
   servicios:   { label:'Servicios',       icon:'⚡', critical:true,  items:['Agua','Luz','Internet'] },
-  cafeteria:   { label:'Cafetería',       icon:'☕', critical:true,  items:['Agua mineral','Chocolate','Matcha','Horchata','Chai','Azúcar','Sirope vainilla','Sirope curaçao','Agua tónica','Jugo naranja','Sirope mango','Limones','Crema batida','Crema para batir','Coffee Mate','Sobres azúcar','Sobres splenda','Servilletas','Bolsas pan','Rinza','Cafiza'] },
+  cafeteria:   { label:'Cafetería',       icon:'☕', critical:true,  items:['Agua mineral','Chocolate','Matcha','Chai','Azúcar','Agua tónica','Jugo naranja','Sirope mango','Limones','Crema batida','Crema para batir','Coffee Mate','Sobres azúcar','Sobres splenda','Servilletas','Bolsas pan','Rinza','Cafiza'] },
   desechables: { label:'Desechables',     icon:'🥤', critical:true,  items:['Vaso cartón 12oz','Vaso cartón 16oz','Vaso cristal 16oz','Tapa 12-16oz','Vaso espresso 4oz','Vaso flat white 8oz','Tapa espresso 4oz','Tapa flat white 8oz'] },
-  cocina:      { label:'Cocina',          icon:'🍳', critical:true,  items:['Cochinita','Jamón','Queso fresco','Queso de cabra','Queso manchego','Frutos rojos','Granola','Pollo','Mantequilla','Aceite'] },
+  cocina:      { label:'Cocina',          icon:'🍳', critical:true,  items:['Jamón','Queso fresco','Queso de cabra','Queso manchego','Frutos rojos','Granola','Mantequilla','Aceite'] },
   verduras:    { label:'Verduras/Frutas', icon:'🥑', critical:false, items:['Plátano','Jitomate','Naranja','Limones','Aguacates','Chiles secos','Arúgula','Espinaca','Cebolla','Ajo','Chiles verdes'] },
+  // Lo que Cocina Central produce y las tiendas solicitan. Misma lista que
+  // READY_ITEMS: el nombre debe coincidir para cruzar "lo que pide la tienda"
+  // con "lo que la cocina ya tiene listo".
+  semiterminados: { label:'Semiterminados', icon:'🥪', critical:true, scope:'stores', items:['Sándwich de tocino','Molletes','Sándwich Barcelona','Sándwich Montecristo','Chilaquiles','Cochinita','Pollo','Horchata','Sirope curaçao','Sirope vainilla'] },
+  // Insumos de pan de Cocina Central (arma los sándwiches). Es faltante, no stock.
+  pan_insumo:  { label:'Pan', icon:'🥖', critical:true, scope:'central', items:['Pan de hogaza','Pan brioche','Chapatas','Croissants'] },
   limpieza:    { label:'Limpieza',        icon:'🧹', critical:false, items:['Pinol','Cloro','Jabón manos','Jabón trastes','Papel baño','Jergas','Guantes trastes','Fibras','Desengrasante','Bolsas basura'] },
+}
+
+// Categorías que puede ver cada ubicación (la cocina no pide semiterminados:
+// los produce; las tiendas no ven el pan-insumo de la cocina).
+export function categoriesFor(location) {
+  return Object.entries(CATEGORIES).filter(([, c]) =>
+    !c.scope || (c.scope === 'central') === !!location?.isCentral)
+}
+
+// ── Stock "listo para entregar" de Cocina Central ───────────────────────
+// Cantidad exacta que la cocina ya tiene preparada para repartir a tiendas.
+export const READY_ITEMS = {
+  'Sándwich de tocino':  { unit:'pz',   label:'Piezas',    step:1,   max:60 },
+  'Molletes':            { unit:'pz',   label:'Piezas',    step:1,   max:60 },
+  'Sándwich Barcelona':  { unit:'pz',   label:'Piezas',    step:1,   max:60 },
+  'Sándwich Montecristo':{ unit:'pz',   label:'Piezas',    step:1,   max:60 },
+  'Chilaquiles':         { unit:'porc', label:'Porciones', step:1,   max:80 },
+  'Cochinita':           { unit:'kg',   label:'Kilos',     step:0.5, max:30 },
+  'Pollo':               { unit:'kg',   label:'Kilos',     step:0.5, max:30 },
+  'Horchata':            { unit:'L',    label:'Litros',    step:1,   max:60 },
+  'Sirope curaçao':      { unit:'L',    label:'Litros',    step:0.5, max:20 },
+  'Sirope vainilla':     { unit:'L',    label:'Litros',    step:0.5, max:20 },
 }
 
 export const CRITICAL_ITEMS = [

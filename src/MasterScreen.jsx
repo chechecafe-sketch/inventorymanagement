@@ -1,15 +1,15 @@
 import { Fragment, useState, useEffect, useMemo } from 'react'
-import { STORES, ALL_LOCATIONS, ADMINS, CATEGORIES, CRITICAL_ITEMS } from './constants'
+import { STORES, ALL_LOCATIONS, ADMINS, CRITICAL_ITEMS, READY_ITEMS, categoriesFor } from './constants'
 import { haversineKm, fmtAge, fmtTime, getAgeColor, avgResupplyHours, priorityScore } from './utils'
 import { C, FONT_DISPLAY, FONT_BODY } from './theme'
-import { loadLastActivityPerStore, loadReportersToday } from './db'
+import { loadLastActivityPerStore, loadReportersToday, loadCocinaListo } from './db'
 import StockPanel from './StockPanel'
 import ConsolidatedPanel from './ConsolidatedPanel'
 
 // Total de ítems que se trackean por tienda (mismo catálogo base para las 5) —
 // se usa para que la barra de salud sea proporcional de verdad, en vez de
 // saturarse con tiendas que acumulan muchas alertas.
-const TOTAL_TRACKED_ITEMS = Object.values(CATEGORIES).reduce((s, c) => s + c.items.length, 0)
+const TOTAL_TRACKED_ITEMS = categoriesFor({}).reduce((s, [, c]) => s + c.items.length, 0)
 
 // Umbral de "tienda callada" — más de 12h sin ningún reporte (faltantes ni
 // stock de café/leche/pan) dispara la alerta de acta de no conformidad.
@@ -25,6 +25,7 @@ export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, s
   const [expandedStore, setExpandedStore] = useState(null)
   const [lastActivity, setLastActivity] = useState({})   // { [store_id]: { at, by } }
   const [reportersToday, setReportersToday] = useState({}) // { [store_id]: [nombres] }
+  const [cocinaListo, setCocinaListo] = useState([])        // stock listo de Cocina Central
 
   useEffect(() => {
     const t = setInterval(() => setTick(x => x+1), 30000)
@@ -37,8 +38,8 @@ export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, s
   useEffect(() => {
     let alive = true
     const refresh = async () => {
-      const [act, reps] = await Promise.all([loadLastActivityPerStore(), loadReportersToday(todayStr())])
-      if (alive) { setLastActivity(act); setReportersToday(reps) }
+      const [act, reps, listo] = await Promise.all([loadLastActivityPerStore(), loadReportersToday(todayStr()), loadCocinaListo()])
+      if (alive) { setLastActivity(act); setReportersToday(reps); setCocinaListo(listo) }
     }
     refresh()
     const t = setInterval(refresh, 60000)
@@ -211,6 +212,32 @@ export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, s
             </Fragment>
           )
         })}
+
+        {/* Cocina Central — lo que ya tiene listo para repartir vs. lo que piden las tiendas */}
+        <div style={{ background:C.card, borderRadius:14, padding:'14px 16px', marginBottom:10, border:`1.5px solid ${C.cardBorder}` }}>
+          <div style={{ fontWeight:700, fontSize:14, color:C.text, fontFamily:FONT_DISPLAY, marginBottom:4 }}>🍳 Cocina central · listo para entregar</div>
+          <div style={{ fontSize:11, color:C.textFaint, marginBottom:10 }}>Contra lo que piden las tiendas (agotado / urgente / poco)</div>
+          {Object.entries(READY_ITEMS).map(([item, cfg]) => {
+            const r = cocinaListo.find(x => x.item === item)
+            const asks = alerts.filter(a => a.item === item && a.store_id !== 'cocina' && a.status !== 'ok')
+            return (
+              <div key={item} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, padding:'7px 0', borderTop:`1px solid ${C.divider}` }}>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:600, color:C.text }}>{item}</div>
+                  <div style={{ fontSize:10.5, color:C.textFaint, marginTop:2 }}>
+                    {asks.length > 0 ? `📣 piden: ${asks.map(a => `${ALL_LOCATIONS.find(s => s.id === a.store_id)?.name || a.store_id} (${a.status === 'out' ? 'agotado' : a.status === 'urgent' ? 'urgente' : 'poco'})`).join(', ')}` : 'sin solicitudes'}
+                  </div>
+                </div>
+                <div style={{ textAlign:'right', flexShrink:0 }}>
+                  <div style={{ fontSize:14, fontWeight:800, color: r ? (Number(r.quantity) > 0 ? C.ok : C.urgent) : C.textFaint }}>
+                    {r ? `${Number(r.quantity)} ${cfg.unit}` : 'sin reporte'}
+                  </div>
+                  {r && <div style={{ fontSize:10, color:C.textFaint }}>hace {fmtAge(r.reported_at)}</div>}
+                </div>
+              </div>
+            )
+          })}
+        </div>
 
         {/* Surtir primero — ranking determinístico (severidad + antigüedad + qué tan rápido
             se agota históricamente), reemplaza el bloque de IA que llamaba a Anthropic sin
