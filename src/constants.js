@@ -45,6 +45,26 @@ export const CATEGORIES = {
   limpieza:    { label:'Limpieza',        icon:'🧹', critical:false, items:['Pinol','Cloro','Jabón manos','Jabón trastes','Papel baño','Jergas','Guantes trastes','Fibras','Desengrasante','Bolsas basura'] },
 }
 
+// ── Clasificación A/B/C por impacto operativo (para el resumen visual) ─────
+// A = sin esto no se vende o no se opera (reportar cada turno).
+// B = afecta calidad/variedad pero hay sustitutos (reportar al cierre).
+// C = soporte (basta revisión semanal o al ver el faltante).
+// Un ítem de CRITICAL_ITEMS siempre es A, aunque su categoría sea B (ej. Matcha).
+// Los ítems de cantidad exacta (café, leches, pan) son A.
+export const CLASS_META = {
+  A: { label:'A · Críticos',  hint:'Sin esto no se vende · cada turno',  color:'#f87171' },
+  B: { label:'B · Importantes', hint:'Afecta calidad · al cierre',       color:'#fbbf24' },
+  C: { label:'C · Soporte',   hint:'Revisión semanal',                   color:'#60a5fa' },
+}
+const CATEGORY_CLASS = {
+  servicios:'A', desechables:'A', cocina:'A', semiterminados:'A', pan_insumo:'A',
+  cafeteria:'B', verduras:'B', limpieza:'C',
+}
+export function classOf(item, category) {
+  if (QUANTITY_ITEMS[item] || CRITICAL_ITEMS.includes(item)) return 'A'
+  return CATEGORY_CLASS[category] || 'B'
+}
+
 // Categorías que puede ver cada ubicación (la cocina no pide semiterminados:
 // los produce; las tiendas no ven el pan-insumo de la cocina).
 export function categoriesFor(location) {
