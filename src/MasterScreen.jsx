@@ -5,6 +5,7 @@ import { C, FONT_DISPLAY, FONT_BODY } from './theme'
 import { loadLastActivityPerStore, loadReportersToday, loadCocinaListo } from './db'
 import StockPanel from './StockPanel'
 import ConsolidatedPanel from './ConsolidatedPanel'
+import OverviewPanel from './OverviewPanel'
 
 // Total de ítems que se trackean por tienda (mismo catálogo base para las 5) —
 // se usa para que la barra de salud sea proporcional de verdad, en vez de
@@ -22,6 +23,7 @@ function todayStr() {
 
 export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, stockCounts, onEnterStore }) {
   const [tick, setTick] = useState(0)
+  const [view, setView] = useState('visual') // 'visual' | 'detalle'
   const [expandedStore, setExpandedStore] = useState(null)
   const [lastActivity, setLastActivity] = useState({})   // { [store_id]: { at, by } }
   const [reportersToday, setReportersToday] = useState({}) // { [store_id]: [nombres] }
@@ -89,6 +91,19 @@ export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, s
       </div>
 
       <div style={{ padding:14 }}>
+        <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+          {[['visual','📊 Resumen visual'],['detalle','📋 Detalle']].map(([k,l]) => (
+            <button key={k} onClick={() => setView(k)}
+              style={{ flex:1, padding:'11px', borderRadius:10, border:'none', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT_BODY,
+                background: view===k ? C.text : C.card, color: view===k ? '#000' : C.textDim }}>{l}</button>
+          ))}
+        </div>
+
+        {view === 'visual' && (
+          <OverviewPanel alerts={alerts} stockCounts={stockCounts} lastActivity={lastActivity} onEnterStore={onEnterStore} />
+        )}
+
+        {view === 'detalle' && (<>
         {/* Alerta de tiendas calladas — más de 12h sin ningún reporte de
             faltantes ni de stock (leche/café/pan). Cuenta como advertencia
             formal previa a levantar acta de no conformidad. */}
@@ -319,6 +334,7 @@ export default function MasterScreen({ alerts, onBack, onMarkOk, consumoStats, s
             </div>
           )
         })}
+      </>)}
       </div>
     </div>
   )
