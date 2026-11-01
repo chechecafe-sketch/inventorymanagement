@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ADMINS, ADMIN_PIN } from './constants'
+import { ADMINS, ADMIN_PIN, STORE_MANAGERS } from './constants'
 import { C, FONT_DISPLAY, FONT_BODY } from './theme'
 
 export default function LoginScreen({ store, onLogin, onAdmin }) {
@@ -61,6 +61,19 @@ export default function LoginScreen({ store, onLogin, onAdmin }) {
               background:C.card, color:C.text, fontFamily:FONT_BODY, boxSizing:'border-box' }}
             onKeyDown={e => e.key==='Enter' && handleEmployee()}
           />
+        )}
+
+        {tab === 'employee' && (STORE_MANAGERS[store?.id] || []).length > 0 && (
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:16, alignItems:'center' }}>
+            <span style={{ color:C.textDim, fontSize:12 }}>Gerencia:</span>
+            {STORE_MANAGERS[store.id].map(m => (
+              <button key={m} onClick={() => { setName(m); setErr('') }}
+                style={{ padding:'8px 14px', borderRadius:999, border:`1.5px solid ${name===m ? C.text : C.cardBorder}`, background:C.card,
+                  color:C.text, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT_BODY }}>
+                ⭐ {m}
+              </button>
+            ))}
+          </div>
         )}
 
         {tab === 'admin' && (

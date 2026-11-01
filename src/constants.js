@@ -20,6 +20,10 @@ export const ALL_LOCATIONS = [...STORES, CENTRAL_KITCHEN]
 
 export const ADMINS = ['Victoria','Fernanda','Luis']
 
+// Gerentes/supervisores por tienda: reportan faltantes como empleados (sin PIN
+// ni permisos de admin) pero aparecen como acceso rápido en el login de su tienda.
+export const STORE_MANAGERS = { studio: ['Violeta'] }
+
 // Nota: café en grano, las leches y los panes se quitaron de aquí — ya no se
 // reportan con los 4 botones de estado, se capturan como cantidad exacta
 // (ver QUANTITY_ITEMS) 3 veces al día. Yogurt griego y carnitas se eliminaron
